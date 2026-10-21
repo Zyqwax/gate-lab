@@ -1,3 +1,5 @@
+'use client';
+
 import React, { useEffect, useState } from 'react';
 import { Palette } from './editor/Palette';
 import { Canvas } from './editor/Canvas';
@@ -10,7 +12,7 @@ import { ChevronRight } from 'lucide-react';
 
 export const App: React.FC = () => {
   const [isTruthTableOpen, setIsTruthTableOpen] = useState(false);
-  const [isWelcomeOpen, setIsWelcomeOpen] = useState(true); // Open initially to select mode!
+  const [isWelcomeOpen, setIsWelcomeOpen] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
   const isRunning = useCircuitStore((state) => state.isRunning);

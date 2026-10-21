@@ -1,3 +1,5 @@
+'use client';
+
 import React, { useState } from 'react';
 import { COMPONENT_DEFINITIONS } from '../components-lib/registry';
 import { useCircuitStore } from '../store/circuitStore';

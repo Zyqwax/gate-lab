@@ -1,4 +1,7 @@
+'use client';
+
 import React, { useRef, useState, useEffect } from 'react';
+import Link from 'next/link';
 import { useCircuitStore } from '../store/circuitStore';
 import { TEMPLATES } from '../templates/circuits';
 import {
@@ -19,11 +22,15 @@ import {
   PanelLeftClose,
   PanelLeft,
   LayoutGrid,
+  Save,
+  Check,
+  ChevronLeft,
+  Pencil,
 } from 'lucide-react';
 
 interface ToolbarProps {
   onOpenTruthTable: () => void;
-  onOpenWelcome: () => void;
+  onOpenWelcome?: () => void;
   isSidebarOpen: boolean;
   onToggleSidebar: () => void;
 }
@@ -50,10 +57,21 @@ export const Toolbar: React.FC<ToolbarProps> = ({
     historyPast,
     historyFuture,
     stepCount,
+    currentProjectName,
+    setProjectName,
+    isSaved,
+    saveCurrentProject,
   } = useCircuitStore();
 
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [justSaved, setJustSaved] = useState(false);
+  const [isEditingName, setIsEditingName] = useState(false);
+  const [tempName, setTempName] = useState(currentProjectName);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    setTempName(currentProjectName);
+  }, [currentProjectName]);
 
   // Sync fullscreen state with document events
   useEffect(() => {
@@ -78,13 +96,19 @@ export const Toolbar: React.FC<ToolbarProps> = ({
     }
   };
 
+  const handleSave = () => {
+    saveCurrentProject();
+    setJustSaved(true);
+    setTimeout(() => setJustSaved(false), 2000);
+  };
+
   const handleExport = () => {
     const json = exportJSON();
     const blob = new Blob([json], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `gate-lab-circuit-${new Date().toISOString().slice(0, 10)}.json`;
+    a.download = `${currentProjectName.toLowerCase().replace(/[^a-z0-9]/g, '-') || 'gate-lab-circuit'}.json`;
     a.click();
     URL.revokeObjectURL(url);
   };
@@ -99,6 +123,10 @@ export const Toolbar: React.FC<ToolbarProps> = ({
         const ok = importJSON(content);
         if (!ok) {
           alert('Hata: Geçersiz devre JSON dosyası. Lütfen geçerli bir devre dosyası seçin.');
+        } else {
+          // Update project name from filename
+          const cleanName = file.name.replace(/\.json$/i, '').replace(/[-_]/g, ' ');
+          setProjectName(cleanName);
         }
       }
     };
@@ -109,10 +137,29 @@ export const Toolbar: React.FC<ToolbarProps> = ({
     e.target.value = '';
   };
 
+  const handleNameSubmit = () => {
+    if (tempName.trim()) {
+      setProjectName(tempName.trim());
+    } else {
+      setTempName(currentProjectName);
+    }
+    setIsEditingName(false);
+  };
+
   return (
     <header className="h-14 bg-slate-900/90 border-b border-slate-800 px-3 flex items-center justify-between select-none z-20 backdrop-blur-md shadow-lg">
-      {/* Left: Sidebar toggle & Simulation Controls */}
+      {/* Left: Dashboard link, Sidebar toggle & Project Name */}
       <div className="flex items-center gap-2">
+        {/* Back to Dashboard */}
+        <Link
+          href="/dashboard"
+          className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-slate-800/80 hover:bg-slate-700 text-slate-300 hover:text-white text-xs font-medium border border-slate-700/60 transition-colors"
+          title="Dashboard'a Dön"
+        >
+          <ChevronLeft className="w-4 h-4" />
+          <span className="hidden sm:inline">Projeler</span>
+        </Link>
+
         {/* Toggle Sidebar Button */}
         <button
           onClick={onToggleSidebar}
@@ -126,17 +173,62 @@ export const Toolbar: React.FC<ToolbarProps> = ({
           {isSidebarOpen ? <PanelLeftClose className="w-4 h-4" /> : <PanelLeft className="w-4 h-4" />}
         </button>
 
-        {/* Welcome / Starter Modal Button */}
+        <div className="h-4 w-px bg-slate-800 mx-1" />
+
+        {/* Project Title Editor */}
+        <div className="flex items-center gap-1.5 max-w-[200px] md:max-w-[260px]">
+          {isEditingName ? (
+            <input
+              type="text"
+              value={tempName}
+              onChange={(e) => setTempName(e.target.value)}
+              onBlur={handleNameSubmit}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') handleNameSubmit();
+                if (e.key === 'Escape') {
+                  setTempName(currentProjectName);
+                  setIsEditingName(false);
+                }
+              }}
+              autoFocus
+              className="bg-slate-950 border border-emerald-500 rounded px-2 py-0.5 text-xs text-white font-medium focus:outline-none w-full"
+            />
+          ) : (
+            <button
+              onClick={() => setIsEditingName(true)}
+              className="flex items-center gap-1.5 text-left text-xs font-semibold text-slate-200 hover:text-emerald-400 transition-colors group cursor-pointer truncate"
+              title="İsmi değiştirmek için tıklayın"
+            >
+              <span className="truncate">{currentProjectName}</span>
+              <Pencil className="w-3 h-3 text-slate-500 opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
+            </button>
+          )}
+        </div>
+
+        {/* SAVE BUTTON */}
         <button
-          onClick={onOpenWelcome}
-          className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-medium border border-slate-700/60 transition-colors cursor-pointer"
-          title="Başlangıç Menüsü (Şablonlar & Boş Devre)"
+          onClick={handleSave}
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all shadow-md cursor-pointer ml-1 ${
+            justSaved || isSaved
+              ? 'bg-slate-800/90 text-emerald-400 border border-emerald-800/60'
+              : 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-emerald-600/30 ring-2 ring-emerald-500/30 animate-pulse'
+          }`}
+          title="Devreyi yerel depolamaya kaydet"
         >
-          <LayoutGrid className="w-3.5 h-3.5 text-indigo-400" />
-          <span className="hidden sm:inline">Şablon Seç</span>
+          {justSaved || isSaved ? (
+            <>
+              <Check className="w-3.5 h-3.5 text-emerald-400" />
+              <span>{justSaved ? 'Kaydedildi!' : 'Kayıtlı'}</span>
+            </>
+          ) : (
+            <>
+              <Save className="w-3.5 h-3.5" />
+              <span>Kaydet</span>
+            </>
+          )}
         </button>
 
-        <div className="h-4 w-px bg-slate-800 mx-1" />
+        <div className="h-4 w-px bg-slate-800 mx-1 hidden lg:block" />
 
         {/* Play/Pause Button */}
         <button
@@ -146,7 +238,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
               ? 'bg-amber-600/90 hover:bg-amber-500 text-white shadow-amber-600/30'
               : 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-emerald-600/30 ring-2 ring-emerald-500/20'
           }`}
-          title={isRunning ? 'Simülasyonu Duraklat' : 'Simülasyonu Başlat (Elle)'}
+          title={isRunning ? 'Simülasyonu Duraklat' : 'Simülasyonu Başlat'}
         >
           {isRunning ? (
             <>
@@ -178,9 +270,11 @@ export const Toolbar: React.FC<ToolbarProps> = ({
           <RotateCcw className="w-3.5 h-3.5" />
           <span className="hidden md:inline">Sıfırla</span>
         </button>
+      </div>
 
-        {/* Speed / Frequency Control */}
-        <div className="hidden lg:flex items-center gap-2 pl-2 border-l border-slate-800">
+      {/* Center: Quick Template Switcher & Frequency */}
+      <div className="hidden xl:flex items-center gap-3">
+        <div className="flex items-center gap-2 pl-2 border-l border-slate-800">
           <Gauge className="w-3.5 h-3.5 text-slate-400" />
           <span className="text-[11px] font-mono text-slate-400">Hız:</span>
           <select
@@ -199,28 +293,27 @@ export const Toolbar: React.FC<ToolbarProps> = ({
             #{stepCount} tick
           </span>
         </div>
-      </div>
 
-      {/* Center: Quick Template Switcher */}
-      <div className="hidden xl:flex items-center gap-2">
-        <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-        <span className="text-xs font-medium text-slate-300">Hızlı Şablon:</span>
-        <select
-          defaultValue=""
-          onChange={(e) => {
-            if (e.target.value) {
-              loadTemplate(e.target.value);
-            }
-          }}
-          className="bg-slate-950 border border-slate-700/80 hover:border-slate-600 text-slate-200 text-xs rounded-lg px-2.5 py-1.5 font-medium focus:outline-none focus:border-emerald-500 cursor-pointer"
-        >
-          <option value="" disabled>Şablon Seçin...</option>
-          {TEMPLATES.map((t) => (
-            <option key={t.id} value={t.id}>
-              {t.name}
-            </option>
-          ))}
-        </select>
+        <div className="flex items-center gap-2">
+          <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+          <span className="text-xs font-medium text-slate-300">Şablon Yükle:</span>
+          <select
+            defaultValue=""
+            onChange={(e) => {
+              if (e.target.value) {
+                loadTemplate(e.target.value);
+              }
+            }}
+            className="bg-slate-950 border border-slate-700/80 hover:border-slate-600 text-slate-200 text-xs rounded-lg px-2.5 py-1 font-medium focus:outline-none focus:border-emerald-500 cursor-pointer"
+          >
+            <option value="" disabled>Şablon Seçin...</option>
+            {TEMPLATES.map((t) => (
+              <option key={t.id} value={t.id}>
+                {t.name}
+              </option>
+            ))}
+          </select>
+        </div>
       </div>
 
       {/* Right: Fullscreen, Truth Table, Storage & Undo */}

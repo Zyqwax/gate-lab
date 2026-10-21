@@ -1,3 +1,5 @@
+'use client';
+
 import React from 'react';
 import { useCircuitStore } from '../store/circuitStore';
 import { getComponentDef } from '../components-lib/registry';

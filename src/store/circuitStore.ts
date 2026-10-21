@@ -3,6 +3,7 @@ import { CircuitModel, ComponentInstance, Wire, SimulationResult, PinRef } from 
 import { defaultSimulator } from '../engine/simulator';
 import { getComponentDef } from '../components-lib/registry';
 import { TEMPLATES } from '../templates/circuits';
+import { saveCircuit } from '../lib/circuitStorage';
 
 interface CircuitState {
   // Circuit data
@@ -21,7 +22,16 @@ interface CircuitState {
   historyPast: { components: ComponentInstance[]; wires: Wire[] }[];
   historyFuture: { components: ComponentInstance[]; wires: Wire[] }[];
 
+  // Project metadata
+  currentProjectId: string | null;
+  currentProjectName: string;
+  isSaved: boolean;
+
   // Actions
+  setProject: (id: string, name: string, model: CircuitModel) => void;
+  setProjectName: (name: string) => void;
+  saveCurrentProject: () => boolean;
+
   addComponent: (type: string, pos: { x: number; y: number }) => void;
   updateComponentPosition: (id: string, pos: { x: number; y: number }) => void;
   updateComponentParams: (id: string, params: Record<string, any>) => void;
@@ -95,6 +105,53 @@ export const useCircuitStore = create<CircuitState>((set, get) => {
     historyPast: [],
     historyFuture: [],
 
+    currentProjectId: null,
+    currentProjectName: 'İsimsiz Devre Projesi',
+    isSaved: true,
+
+    setProject: (id, name, model) => {
+      const simResult = runSim(model.components, model.wires);
+      set({
+        currentProjectId: id,
+        currentProjectName: name,
+        components: model.components,
+        wires: model.wires,
+        selectedComponentId: null,
+        selectedWireId: null,
+        simResult,
+        stepCount: 0,
+        isSaved: true,
+        historyPast: [],
+        historyFuture: [],
+      });
+    },
+
+    setProjectName: (name) => {
+      set({ currentProjectName: name, isSaved: false });
+    },
+
+    saveCurrentProject: () => {
+      const { currentProjectId, currentProjectName, components, wires } = get();
+      if (typeof window === 'undefined') return false;
+
+      const id = currentProjectId || `circuit_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+      saveCircuit({
+        id,
+        name: currentProjectName || 'İsimsiz Devre Projesi',
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+        circuit: {
+          version: 1,
+          mode: 'sandbox',
+          components,
+          wires,
+        },
+      });
+
+      set({ currentProjectId: id, isSaved: true });
+      return true;
+    },
+
     evaluateCircuit: () => {
       const { components, wires, simResult } = get();
       const newResult = runSim(components, wires, simResult.componentStates);
@@ -124,12 +181,14 @@ export const useCircuitStore = create<CircuitState>((set, get) => {
           components,
           simResult,
           selectedComponentId: newId,
+          isSaved: false,
         };
       });
     },
 
     updateComponentPosition: (id, pos) => {
       set((state) => ({
+        isSaved: false,
         components: state.components.map((c) =>
           c.id === id ? { ...c, x: pos.x, y: pos.y } : c
         ),
@@ -147,6 +206,7 @@ export const useCircuitStore = create<CircuitState>((set, get) => {
           ...historyUpdate,
           components,
           simResult,
+          isSaved: false,
         };
       });
     },
@@ -166,6 +226,7 @@ export const useCircuitStore = create<CircuitState>((set, get) => {
           wires,
           selectedComponentId: state.selectedComponentId === id ? null : state.selectedComponentId,
           simResult,
+          isSaved: false,
         };
       });
     },
@@ -193,6 +254,7 @@ export const useCircuitStore = create<CircuitState>((set, get) => {
           ...historyUpdate,
           wires,
           simResult,
+          isSaved: false,
         };
       });
     },
@@ -207,6 +269,7 @@ export const useCircuitStore = create<CircuitState>((set, get) => {
           wires,
           selectedWireId: state.selectedWireId === id ? null : state.selectedWireId,
           simResult,
+          isSaved: false,
         };
       });
     },

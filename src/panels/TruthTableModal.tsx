@@ -1,3 +1,5 @@
+'use client';
+
 import React, { useMemo } from 'react';
 import { useCircuitStore } from '../store/circuitStore';
 import { defaultSimulator } from '../engine/simulator';

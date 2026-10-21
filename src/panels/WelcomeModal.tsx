@@ -1,3 +1,5 @@
+'use client';
+
 import React, { useRef, useState } from 'react';
 import { TEMPLATES, CircuitTemplate } from '../templates/circuits';
 import { useCircuitStore } from '../store/circuitStore';
