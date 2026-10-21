@@ -20,7 +20,7 @@ export const BrandLogo: React.FC<BrandLogoProps> = ({
         viewBox="0 0 560 260"
         className={className}
         role="img"
-        aria-label="Logic Gate Logo"
+        aria-label="GateLab Logo"
       >
         <rect width="560" height="260" fill="#F7F5F0" />
         <g transform="translate(22 30)">
@@ -35,25 +35,13 @@ export const BrandLogo: React.FC<BrandLogoProps> = ({
         </g>
         <text
           x="222"
-          y="134"
+          y="152"
           fontFamily="'IBM Plex Mono', 'DejaVu Sans Mono', 'Menlo', monospace"
-          fontWeight="600"
           fontSize="64"
           letterSpacing="-1"
-          fill="#1C1B19"
         >
-          logic
-        </text>
-        <text
-          x="222"
-          y="196"
-          fontFamily="'IBM Plex Mono', 'DejaVu Sans Mono', 'Menlo', monospace"
-          fontWeight="400"
-          fontSize="64"
-          letterSpacing="-1"
-          fill="#D98A00"
-        >
-          gate_
+          <tspan fontWeight="600" fill="#1C1B19">Gate</tspan>
+          <tspan fontWeight="400" fill="#D98A00">Lab</tspan>
         </text>
       </svg>
     );
@@ -66,7 +54,7 @@ export const BrandLogo: React.FC<BrandLogoProps> = ({
         viewBox="0 0 560 260"
         className={className}
         role="img"
-        aria-label="Logic Gate Logo"
+        aria-label="GateLab Logo"
       >
         <g transform="translate(22 30)">
           <path
@@ -80,25 +68,14 @@ export const BrandLogo: React.FC<BrandLogoProps> = ({
         </g>
         <text
           x="222"
-          y="134"
+          y="152"
           fontFamily="'IBM Plex Mono', 'DejaVu Sans Mono', 'Menlo', monospace"
-          fontWeight="600"
           fontSize="64"
           letterSpacing="-1"
           fill="#FFFFFF"
         >
-          logic
-        </text>
-        <text
-          x="222"
-          y="196"
-          fontFamily="'IBM Plex Mono', 'DejaVu Sans Mono', 'Menlo', monospace"
-          fontWeight="400"
-          fontSize="64"
-          letterSpacing="-1"
-          fill="#FFFFFF"
-        >
-          gate_
+          <tspan fontWeight="600">Gate</tspan>
+          <tspan fontWeight="400">Lab</tspan>
         </text>
       </svg>
     );
@@ -111,7 +88,7 @@ export const BrandLogo: React.FC<BrandLogoProps> = ({
       viewBox="0 0 560 260"
       className={className}
       role="img"
-      aria-label="Logic Gate Logo"
+      aria-label="GateLab Logo"
     >
       <rect width="560" height="260" fill="#15161A" />
       <g transform="translate(22 30)">
@@ -126,25 +103,13 @@ export const BrandLogo: React.FC<BrandLogoProps> = ({
       </g>
       <text
         x="222"
-        y="134"
+        y="152"
         fontFamily="'IBM Plex Mono', 'DejaVu Sans Mono', 'Menlo', monospace"
-        fontWeight="600"
         fontSize="64"
         letterSpacing="-1"
-        fill="#F7F5F0"
       >
-        logic
-      </text>
-      <text
-        x="222"
-        y="196"
-        fontFamily="'IBM Plex Mono', 'DejaVu Sans Mono', 'Menlo', monospace"
-        fontWeight="400"
-        fontSize="64"
-        letterSpacing="-1"
-        fill="#FFB000"
-      >
-        gate_
+        <tspan fontWeight="600" fill="#F7F5F0">Gate</tspan>
+        <tspan fontWeight="400" fill="#FFB000">Lab</tspan>
       </text>
     </svg>
   );

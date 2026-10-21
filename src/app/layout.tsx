@@ -3,7 +3,7 @@ import './globals.css';
 import { GlobalDialog } from '../components/ui/GlobalDialog';
 import { LanguageSync } from '../i18n/LanguageSync';
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://gatelab.dev';
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://gatelab.zyqwax.com';
 
 export const viewport: Viewport = {
   themeColor: [
