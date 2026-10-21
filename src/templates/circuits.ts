@@ -1,42 +1,63 @@
 import { CircuitModel } from '../engine/types';
+import { Locale } from '../i18n/translations';
+
+export interface LocalizedText {
+  en: string;
+  tr: string;
+}
 
 export interface CircuitTemplate {
   id: string;
   name: string;
   category: string;
   description: string;
+  nameI18n?: LocalizedText;
+  categoryI18n?: LocalizedText;
+  descriptionI18n?: LocalizedText;
   circuit: CircuitModel;
 }
 
 export const TEMPLATES: CircuitTemplate[] = [
   {
     id: 'full-adder',
-    name: 'Full Adder (Tam Toplayıcı)',
-    category: 'Aritmetik Devreler',
-    description: '2 adet XOR, 2 adet AND ve 1 adet OR kapısı ile oluşturulmuş 1-bit tam toplayıcı devresi. A, B ve Elde Girişi (Cin) toplanarak Toplam (Σ) ve Elde Çıkışı (Cout) üretir.',
+    name: 'Full Adder (1-Bit)',
+    category: 'Arithmetic Circuits',
+    description: '1-bit full adder built with 2 XOR, 2 AND, and 1 OR gates. Adds inputs A, B and Carry-In (Cin) to produce Sum (Σ) and Carry-Out (Cout).',
+    nameI18n: {
+      en: 'Full Adder (1-Bit)',
+      tr: 'Full Adder (Tam Toplayıcı)',
+    },
+    categoryI18n: {
+      en: 'Arithmetic Circuits',
+      tr: 'Aritmetik Devreler',
+    },
+    descriptionI18n: {
+      en: '1-bit full adder built with 2 XOR, 2 AND, and 1 OR gates. Adds inputs A, B and Carry-In (Cin) to produce Sum (Σ) and Carry-Out (Cout).',
+      tr: '2 adet XOR, 2 adet AND ve 1 adet OR kapısı ile oluşturulmuş 1-bit tam toplayıcı devresi. A, B ve Elde Girişi (Cin) toplanarak Toplam (Σ) ve Elde Çıkışı (Cout) üretir.',
+    },
     circuit: {
       version: 1,
       mode: 'sandbox',
       components: [
         // Inputs (Left)
-        { id: 'sw_a', type: 'SWITCH', x: 60, y: 100, params: { state: 1, label: 'Giriş A' } },
-        { id: 'sw_b', type: 'SWITCH', x: 60, y: 220, params: { state: 1, label: 'Giriş B' } },
-        { id: 'sw_cin', type: 'SWITCH', x: 60, y: 340, params: { state: 0, label: 'Elde Girişi (Cin)' } },
+        { id: 'sw_a', type: 'SWITCH', x: 60, y: 100, params: { state: 1, label: 'Input A' } },
+        { id: 'sw_b', type: 'SWITCH', x: 60, y: 220, params: { state: 1, label: 'Input B' } },
+        { id: 'sw_cin', type: 'SWITCH', x: 60, y: 340, params: { state: 0, label: 'Carry-In (Cin)' } },
 
         // Stage 1 Gates
         { id: 'xor_1', type: 'XOR', x: 300, y: 130, params: { label: 'XOR 1 (A ⊕ B)' } },
         { id: 'and_1', type: 'AND', x: 300, y: 270, params: { label: 'AND 1 (A · B)' } },
 
         // Stage 2 Gates
-        { id: 'xor_2', type: 'XOR', x: 560, y: 180, params: { label: 'XOR 2 (Toplam)' } },
-        { id: 'and_2', type: 'AND', x: 560, y: 340, params: { label: 'AND 2 (Ara Elde)' } },
+        { id: 'xor_2', type: 'XOR', x: 560, y: 180, params: { label: 'XOR 2 (Sum)' } },
+        { id: 'and_2', type: 'AND', x: 560, y: 340, params: { label: 'AND 2 (Int Carry)' } },
 
         // Stage 3 Gate
-        { id: 'or_1', type: 'OR', x: 780, y: 300, params: { label: 'OR (Elde Çıkışı)' } },
+        { id: 'or_1', type: 'OR', x: 780, y: 300, params: { label: 'OR (Carry-Out)' } },
 
         // Outputs (Right)
-        { id: 'led_sum', type: 'LED', x: 800, y: 180, params: { label: 'Toplam (Sum / Σ)', color: '#10b981' } },
-        { id: 'led_cout', type: 'LED', x: 960, y: 300, params: { label: 'Elde Çıkışı (Cout)', color: '#38bdf8' } },
+        { id: 'led_sum', type: 'LED', x: 800, y: 180, params: { label: 'Sum (Σ)', color: '#10b981' } },
+        { id: 'led_cout', type: 'LED', x: 960, y: 300, params: { label: 'Carry-Out (Cout)', color: '#38bdf8' } },
       ],
       wires: [
         // A connections
@@ -69,19 +90,31 @@ export const TEMPLATES: CircuitTemplate[] = [
   },
   {
     id: 'half-adder',
-    name: 'Half Adder (Yarım Toplayıcı)',
-    category: 'Aritmetik Devreler',
-    description: '1 adet XOR ve 1 adet AND kapısı ile iki biti toplayan temel toplayıcı devresi.',
+    name: 'Half Adder',
+    category: 'Arithmetic Circuits',
+    description: 'Basic binary adder that adds two single bits using 1 XOR gate (Sum) and 1 AND gate (Carry).',
+    nameI18n: {
+      en: 'Half Adder',
+      tr: 'Half Adder (Yarım Toplayıcı)',
+    },
+    categoryI18n: {
+      en: 'Arithmetic Circuits',
+      tr: 'Aritmetik Devreler',
+    },
+    descriptionI18n: {
+      en: 'Basic binary adder that adds two single bits using 1 XOR gate (Sum) and 1 AND gate (Carry).',
+      tr: '1 adet XOR ve 1 adet AND kapısı ile iki biti toplayan temel toplayıcı devresi.',
+    },
     circuit: {
       version: 1,
       mode: 'sandbox',
       components: [
-        { id: 'ha_sw_a', type: 'SWITCH', x: 80, y: 120, params: { state: 1, label: 'Giriş A' } },
-        { id: 'ha_sw_b', type: 'SWITCH', x: 80, y: 240, params: { state: 0, label: 'Giriş B' } },
-        { id: 'ha_xor', type: 'XOR', x: 300, y: 120, params: { label: 'XOR (Toplam)' } },
-        { id: 'ha_and', type: 'AND', x: 300, y: 240, params: { label: 'AND (Elde)' } },
-        { id: 'ha_led_sum', type: 'LED', x: 500, y: 120, params: { label: 'Toplam (Sum)', color: '#10b981' } },
-        { id: 'ha_led_carry', type: 'LED', x: 500, y: 240, params: { label: 'Elde (Carry)', color: '#38bdf8' } },
+        { id: 'ha_sw_a', type: 'SWITCH', x: 80, y: 120, params: { state: 1, label: 'Input A' } },
+        { id: 'ha_sw_b', type: 'SWITCH', x: 80, y: 240, params: { state: 0, label: 'Input B' } },
+        { id: 'ha_xor', type: 'XOR', x: 300, y: 120, params: { label: 'XOR (Sum)' } },
+        { id: 'ha_and', type: 'AND', x: 300, y: 240, params: { label: 'AND (Carry)' } },
+        { id: 'ha_led_sum', type: 'LED', x: 500, y: 120, params: { label: 'Sum', color: '#10b981' } },
+        { id: 'ha_led_carry', type: 'LED', x: 500, y: 240, params: { label: 'Carry', color: '#38bdf8' } },
       ],
       wires: [
         { id: 'hw_a_xor', from: { comp: 'ha_sw_a', pin: 'out' }, to: { comp: 'ha_xor', pin: 'in0' } },
@@ -95,9 +128,21 @@ export const TEMPLATES: CircuitTemplate[] = [
   },
   {
     id: 'sr-latch',
-    name: 'SR Latch (Geri Beslemeli NOR Hafıza)',
-    category: 'Sıralı / Hafıza',
-    description: 'İki adet çapraz bağlı NOR kapısı ile 1-bit veri saklama (Set, Reset, Hold). Geri beslemeli simülasyon testi.',
+    name: 'SR Latch (Cross-Coupled NOR)',
+    category: 'Sequential / Memory',
+    description: '1-bit memory cell using cross-coupled NOR gates with Set, Reset, and Hold states. Demonstrates feedback loop simulation.',
+    nameI18n: {
+      en: 'SR Latch (Cross-Coupled NOR)',
+      tr: 'SR Latch (Geri Beslemeli NOR Hafıza)',
+    },
+    categoryI18n: {
+      en: 'Sequential / Memory',
+      tr: 'Sıralı / Hafıza',
+    },
+    descriptionI18n: {
+      en: '1-bit memory cell using cross-coupled NOR gates with Set, Reset, and Hold states. Demonstrates feedback loop simulation.',
+      tr: 'İki adet çapraz bağlı NOR kapısı ile 1-bit veri saklama (Set, Reset, Hold). Geri beslemeli simülasyon testi.',
+    },
     circuit: {
       version: 1,
       mode: 'sandbox',
@@ -106,8 +151,8 @@ export const TEMPLATES: CircuitTemplate[] = [
         { id: 'sr_sw_s', type: 'SWITCH', x: 80, y: 260, params: { state: 1, label: 'Set (S)' } },
         { id: 'sr_nor1', type: 'NOR', x: 300, y: 120, params: { label: 'NOR 1' } },
         { id: 'sr_nor2', type: 'NOR', x: 300, y: 240, params: { label: 'NOR 2' } },
-        { id: 'sr_led_q', type: 'LED', x: 520, y: 120, params: { label: 'Q Çıkışı', color: '#10b981' } },
-        { id: 'sr_led_qbar', type: 'LED', x: 520, y: 240, params: { label: 'Q̄ (Değili)', color: '#f59e0b' } },
+        { id: 'sr_led_q', type: 'LED', x: 520, y: 120, params: { label: 'Q Output', color: '#10b981' } },
+        { id: 'sr_led_qbar', type: 'LED', x: 520, y: 240, params: { label: 'Q̄ (Inverted)', color: '#f59e0b' } },
       ],
       wires: [
         { id: 'w_r_nor1', from: { comp: 'sr_sw_r', pin: 'out' }, to: { comp: 'sr_nor1', pin: 'in0' } },
@@ -124,16 +169,28 @@ export const TEMPLATES: CircuitTemplate[] = [
   {
     id: 'clocked-counter',
     name: 'Clock & D Flip-Flop Toggle',
-    category: 'Sıralı / Hafıza',
-    description: 'Saat üreteci (Clock) ve ters çevrilmiş Q̄ çıkışını D girişine bağlayarak frekans bölücü / 1-bit sayaç.',
+    category: 'Sequential / Memory',
+    description: 'Periodic clock generator feeding a D Flip-Flop with inverted Q̄ feedback to divide frequency by 2 and toggle states.',
+    nameI18n: {
+      en: 'Clock & D Flip-Flop Toggle',
+      tr: 'Saat & D Flip-Flop Bölücü',
+    },
+    categoryI18n: {
+      en: 'Sequential / Memory',
+      tr: 'Sıralı / Hafıza',
+    },
+    descriptionI18n: {
+      en: 'Periodic clock generator feeding a D Flip-Flop with inverted Q̄ feedback to divide frequency by 2 and toggle states.',
+      tr: 'Saat üreteci (Clock) ve ters çevrilmiş Q̄ çıkışını D girişine bağlayarak frekans bölücü / 1-bit sayaç.',
+    },
     circuit: {
       version: 1,
       mode: 'sandbox',
       components: [
-        { id: 'clk_gen', type: 'CLOCK', x: 80, y: 180, params: { frequency: 1, high: false, label: 'Saat (1 Hz)' } },
+        { id: 'clk_gen', type: 'CLOCK', x: 80, y: 180, params: { frequency: 1, high: false, label: 'Clock (1 Hz)' } },
         { id: 'dff', type: 'D_FLIP_FLOP', x: 300, y: 140, params: { label: 'D Flip-Flop' } },
-        { id: 'led_clk', type: 'LED', x: 300, y: 280, params: { label: 'Saat LED', color: '#38bdf8' } },
-        { id: 'led_q', type: 'LED', x: 520, y: 120, params: { label: 'Q (Bölünmüş Saat)', color: '#10b981' } },
+        { id: 'led_clk', type: 'LED', x: 300, y: 280, params: { label: 'Clock LED', color: '#38bdf8' } },
+        { id: 'led_q', type: 'LED', x: 520, y: 120, params: { label: 'Q (Divided Clock)', color: '#10b981' } },
         { id: 'led_qbar', type: 'LED', x: 520, y: 220, params: { label: 'Q̄', color: '#f59e0b' } },
       ],
       wires: [
@@ -148,3 +205,22 @@ export const TEMPLATES: CircuitTemplate[] = [
     },
   },
 ];
+
+/**
+ * Returns a template with name, category and description localized to the selected locale
+ */
+export function getLocalizedTemplate(tpl: CircuitTemplate, locale: Locale): CircuitTemplate {
+  return {
+    ...tpl,
+    name: tpl.nameI18n ? (tpl.nameI18n[locale] || tpl.nameI18n.en) : tpl.name,
+    category: tpl.categoryI18n ? (tpl.categoryI18n[locale] || tpl.categoryI18n.en) : tpl.category,
+    description: tpl.descriptionI18n ? (tpl.descriptionI18n[locale] || tpl.descriptionI18n.en) : tpl.description,
+  };
+}
+
+/**
+ * Returns all templates with localized fields
+ */
+export function getLocalizedTemplates(locale: Locale): CircuitTemplate[] {
+  return TEMPLATES.map((t) => getLocalizedTemplate(t, locale));
+}

@@ -3,7 +3,7 @@
 import React, { useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { TEMPLATES } from '@/templates/circuits';
+import { TEMPLATES, getLocalizedTemplates } from '@/templates/circuits';
 import {
   createBlankCircuit,
   createCircuitFromTemplate,
@@ -19,21 +19,25 @@ import {
   Layers,
   Cpu,
 } from 'lucide-react';
+import { useTranslation } from '@/i18n';
 
 export default function NewCircuitPage() {
   const router = useRouter();
+  const { t, locale, setLocale } = useTranslation();
   const [blankName, setBlankName] = useState('');
   const [importError, setImportError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  const templates = getLocalizedTemplates(locale);
+
   const handleStartBlank = (e: React.FormEvent) => {
     e.preventDefault();
-    const newCircuit = createBlankCircuit(blankName);
+    const newCircuit = createBlankCircuit(blankName, locale);
     router.push(`/dashboard/editor?id=${newCircuit.id}`);
   };
 
   const handleSelectTemplate = (templateId: string) => {
-    const newCircuit = createCircuitFromTemplate(templateId);
+    const newCircuit = createCircuitFromTemplate(templateId, undefined, locale);
     router.push(`/dashboard/editor?id=${newCircuit.id}`);
   };
 
@@ -48,20 +52,20 @@ export default function NewCircuitPage() {
       try {
         const content = event.target?.result as string;
         if (!content) {
-          setImportError('Dosya içeriği boş.');
+          setImportError(t('fileEmptyError'));
           return;
         }
 
         const cleanName = file.name.replace(/\.json$/i, '').replace(/[-_]/g, ' ');
-        const newCircuit = createCircuitFromJSON(content, cleanName);
+        const newCircuit = createCircuitFromJSON(content, cleanName, locale);
 
         if (newCircuit) {
           router.push(`/dashboard/editor?id=${newCircuit.id}`);
         } else {
-          setImportError('Geçersiz devre JSON formatı. "components" veya "wires" eksik.');
+          setImportError(t('invalidFormatError'));
         }
       } catch (err) {
-        setImportError('Dosya okunurken bir hata oluştu.');
+        setImportError(t('fileReadError'));
       }
     };
 
@@ -80,10 +84,34 @@ export default function NewCircuitPage() {
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-800/80 hover:bg-slate-700 text-slate-300 hover:text-white text-xs font-semibold border border-slate-700/60 transition-colors"
             >
               <ChevronLeft className="w-4 h-4" />
-              <span>Dashboard'a Dön</span>
+              <span>{t('backToDashboard')}</span>
             </Link>
             <span className="text-slate-700">/</span>
-            <span className="text-xs font-semibold text-slate-300">Yeni Devre Projesi</span>
+            <span className="text-xs font-semibold text-slate-300">{t('newCircuitTitle')}</span>
+          </div>
+
+          {/* Language Switcher */}
+          <div className="flex items-center gap-1 bg-slate-900 p-0.5 rounded-lg border border-slate-800">
+            <button
+              onClick={() => setLocale("en")}
+              className={`px-2 py-1 rounded text-xs font-bold transition-colors cursor-pointer ${
+                locale === "en"
+                  ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/40"
+                  : "text-slate-400 hover:text-white"
+              }`}
+            >
+              EN
+            </button>
+            <button
+              onClick={() => setLocale("tr")}
+              className={`px-2 py-1 rounded text-xs font-bold transition-colors cursor-pointer ${
+                locale === "tr"
+                  ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/40"
+                  : "text-slate-400 hover:text-white"
+              }`}
+            >
+              TR
+            </button>
           </div>
         </div>
       </header>
@@ -93,10 +121,10 @@ export default function NewCircuitPage() {
         <div className="mb-10 text-center sm:text-left">
           <h1 className="text-3xl font-extrabold tracking-tight text-white flex items-center justify-center sm:justify-start gap-2.5">
             <Cpu className="w-8 h-8 text-emerald-400" />
-            <span>Yeni Proje Başlat</span>
+            <span>{t('newCircuitTitle')}</span>
           </h1>
           <p className="text-sm text-slate-400 mt-2 max-w-xl">
-            Devrenizi nasıl başlatmak istersiniz? Boş bir tuval açabilir, hazır devre şablonlarından birini temel alabilir veya bir JSON dosyası yükleyebilirsiniz.
+            {t('newCircuitSub')}
           </p>
         </div>
 
@@ -114,19 +142,19 @@ export default function NewCircuitPage() {
               <div className="w-12 h-12 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 flex items-center justify-center mb-4">
                 <PlusCircle className="w-6 h-6" />
               </div>
-              <h2 className="text-base font-bold text-white mb-1">Boş Devre ile Başla</h2>
+              <h2 className="text-base font-bold text-white mb-1">{t('startBlank')}</h2>
               <p className="text-xs text-slate-400 mb-6">
-                Tertemiz bir çalışma alanı. Kapıları, anahtarları ve LED'leri kendi hayal gücünüzle yerleştirin.
+                {t('startBlankDesc')}
               </p>
 
               <form onSubmit={handleStartBlank} className="space-y-4">
                 <div>
                   <label className="text-xs font-semibold text-slate-300 block mb-1.5">
-                    Proje Adı
+                    {t('circuitName')}
                   </label>
                   <input
                     type="text"
-                    placeholder="Örn: 4-Bit ALU Tasarımı"
+                    placeholder={t('circuitNamePlaceholder')}
                     value={blankName}
                     onChange={(e) => setBlankName(e.target.value)}
                     className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-emerald-500 transition-colors"
@@ -137,14 +165,14 @@ export default function NewCircuitPage() {
                   type="submit"
                   className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-slate-950 font-bold text-xs shadow-lg shadow-emerald-600/30 transition-all cursor-pointer"
                 >
-                  <span>Boş Tuval Aç</span>
+                  <span>{t('openBlankCanvas')}</span>
                   <ArrowRight className="w-4 h-4 stroke-[3]" />
                 </button>
               </form>
             </div>
 
             <div className="mt-8 pt-4 border-t border-slate-800 text-[11px] text-slate-500">
-              * İstediğiniz an projeyi yerel olarak kaydedebilir veya JSON olarak dışa aktarabilirsiniz.
+              * {locale === 'tr' ? 'İstediğiniz an projeyi yerel olarak kaydedebilir veya JSON olarak dışa aktarabilirsiniz.' : 'You can save your project locally or export as JSON at any time.'}
             </div>
           </div>
 
@@ -157,14 +185,14 @@ export default function NewCircuitPage() {
                     <Sparkles className="w-5 h-5" />
                   </div>
                   <div>
-                    <h2 className="text-base font-bold text-white">Hazır Şablonlar ile Başla</h2>
-                    <p className="text-xs text-slate-400">Doğrulanmış şablon devresini yeni bir proje olarak klonlayın.</p>
+                    <h2 className="text-base font-bold text-white">{t('templatesTitle')}</h2>
+                    <p className="text-xs text-slate-400">{t('templatesSub')}</p>
                   </div>
                 </div>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 mt-4">
-                {TEMPLATES.map((tpl) => (
+                {templates.map((tpl) => (
                   <button
                     key={tpl.id}
                     onClick={() => handleSelectTemplate(tpl.id)}
@@ -181,7 +209,7 @@ export default function NewCircuitPage() {
                         </span>
                         {tpl.id === 'full-adder' && (
                           <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-indigo-950 text-indigo-300 border border-indigo-800/80">
-                            Önerilen
+                            {locale === 'tr' ? 'Önerilen' : 'Featured'}
                           </span>
                         )}
                       </div>
@@ -193,7 +221,7 @@ export default function NewCircuitPage() {
                     <div className="mt-4 pt-2.5 border-t border-slate-800/60 flex items-center justify-between text-[10px] text-slate-500 font-mono">
                       <span>{tpl.category}</span>
                       <span className="text-indigo-400 group-hover:translate-x-1 transition-transform flex items-center gap-1 font-sans font-semibold">
-                        <span>Bu Şablonu Aç</span>
+                        <span>{t('useTemplate')}</span>
                         <ArrowRight className="w-3 h-3" />
                       </span>
                     </div>
@@ -222,15 +250,15 @@ export default function NewCircuitPage() {
                   </div>
                   <div>
                     <div className="text-xs font-bold text-slate-200 group-hover:text-sky-300">
-                      Kendi JSON Devre Dosyanı Yükle (.json)
+                      {locale === 'tr' ? 'Kendi JSON Devre Dosyanı Yükle (.json)' : 'Upload Your JSON Circuit File (.json)'}
                     </div>
                     <div className="text-[11px] text-slate-400 mt-0.5">
-                      Daha önce indirdiğiniz bir devre şemasını yükleyip yeni proje olarak başlatın.
+                      {locale === 'tr' ? 'Daha önce indirdiğiniz bir devre şemasını yükleyip yeni proje olarak başlatın.' : 'Upload a previously exported circuit and start it as a new project.'}
                     </div>
                   </div>
                 </div>
                 <div className="flex items-center gap-1 text-xs font-semibold text-sky-400 group-hover:translate-x-1 transition-transform">
-                  <span>Dosya Seç</span>
+                  <span>{locale === 'tr' ? 'Dosya Seç' : 'Choose File'}</span>
                   <ArrowRight className="w-3.5 h-3.5" />
                 </div>
               </button>

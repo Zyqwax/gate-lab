@@ -31,7 +31,9 @@ import {
   MoreVertical,
   Sliders,
   Map,
+  Globe,
 } from "lucide-react";
+import { useTranslation } from "../i18n";
 
 interface ToolbarProps {
   onOpenTruthTable: () => void;
@@ -48,6 +50,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
   isInspectorOpen,
   onToggleInspector,
 }) => {
+  const { t, locale, setLocale } = useTranslation();
   const {
     isRunning,
     togglePlay,
@@ -147,8 +150,8 @@ export const Toolbar: React.FC<ToolbarProps> = ({
         const ok = importJSON(content);
         if (!ok) {
           await alertDialog({
-            title: "Dosya Yükleme Hatası",
-            message: "Seçilen dosya geçerli bir GateLab devre JSON biçiminde değil.",
+            title: t("importErrorTitle"),
+            message: t("importErrorMsg"),
             type: "error",
           });
         } else {
@@ -179,7 +182,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
         <Link
           href="/dashboard"
           className="p-1.5 rounded-lg bg-slate-800/80 hover:bg-slate-700 text-slate-300 hover:text-white transition-colors shrink-0"
-          title="Dashboard'a Dön"
+          title={t("backToDashboard")}
         >
           <ChevronLeft className="w-4 h-4" />
         </Link>
@@ -192,7 +195,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
               ? "bg-slate-800 border-slate-700 text-emerald-400 hover:bg-slate-700"
               : "bg-slate-800/80 border-slate-700/60 text-slate-400 hover:text-white hover:bg-slate-700"
           }`}
-          title={isSidebarOpen ? "Sol Parça Panelini Gizle" : "Sol Parça Panelini Göster"}
+          title={isSidebarOpen ? t("hideSidebar") : t("showSidebar")}
         >
           {isSidebarOpen ? <PanelLeftClose className="w-4 h-4" /> : <PanelLeft className="w-4 h-4" />}
         </button>
@@ -219,7 +222,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
             <button
               onClick={() => setIsEditingName(true)}
               className="w-full h-7 px-2 rounded-lg bg-slate-800/40 hover:bg-slate-800 border border-transparent hover:border-slate-700/80 text-xs font-semibold text-slate-200 hover:text-white transition-all flex items-center justify-between group cursor-pointer text-left"
-              title="İsmi değiştirmek için tıklayın"
+              title={t("renameTooltip")}
             >
               <span className="truncate">{currentProjectName}</span>
               <Pencil className="w-2.5 h-2.5 text-slate-500 opacity-60 group-hover:opacity-100 transition-opacity shrink-0 ml-1" />
@@ -231,20 +234,22 @@ export const Toolbar: React.FC<ToolbarProps> = ({
         {(!isSaved || justSaved) && (
           <button
             onClick={handleSave}
-            className={`flex items-center gap-1 p-1.5 rounded-lg text-xs font-bold transition-all shadow-md cursor-pointer shrink-0 animate-in fade-in duration-150 ${
+            className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold transition-all shadow-md cursor-pointer shrink-0 animate-in fade-in duration-150 ${
               justSaved
                 ? "bg-emerald-950 text-emerald-400 border border-emerald-800/80"
                 : "bg-emerald-600 hover:bg-emerald-500 text-slate-950 shadow-emerald-600/30"
             }`}
-            title="Değişiklikleri Kaydet"
+            title={justSaved ? t("saved") : t("save")}
           >
             {justSaved ? (
               <>
                 <Check className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">{t("saved")}</span>
               </>
             ) : (
               <>
                 <Save className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">{t("save")}</span>
               </>
             )}
           </button>
@@ -261,17 +266,17 @@ export const Toolbar: React.FC<ToolbarProps> = ({
               ? "bg-amber-600 hover:bg-amber-500 text-white shadow-amber-600/30"
               : "bg-emerald-600 hover:bg-emerald-500 text-slate-950 shadow-emerald-600/30 ring-2 ring-emerald-500/20"
           }`}
-          title={isRunning ? "Simülasyonu Duraklat" : "Simülasyonu Başlat"}
+          title={isRunning ? t("pauseSimulation") : t("startSimulation")}
         >
           {isRunning ? (
             <>
               <Pause className="w-3.5 h-3.5 fill-current" />
-              <span>DURDUR</span>
+              <span>{t("pause")}</span>
             </>
           ) : (
             <>
               <Play className="w-3.5 h-3.5 fill-current" />
-              <span>BAŞLAT</span>
+              <span>{t("run")}</span>
             </>
           )}
         </button>
@@ -281,10 +286,10 @@ export const Toolbar: React.FC<ToolbarProps> = ({
           <button
             onClick={step}
             className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-slate-800/80 hover:bg-slate-700 text-slate-300 text-xs font-medium border border-slate-700/60 transition-colors cursor-pointer animate-in fade-in duration-150"
-            title="Tek Adım İlerle (Step)"
+            title={t("stepTooltip")}
           >
             <SkipForward className="w-3.5 h-3.5" />
-            <span className="hidden md:inline">Adım</span>
+            <span className="hidden md:inline">{t("step")}</span>
           </button>
         )}
 
@@ -293,7 +298,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
           <button
             onClick={resetSimulation}
             className="p-1.5 rounded-lg bg-slate-800/80 hover:bg-slate-700 text-slate-400 hover:text-white border border-slate-700/60 transition-colors cursor-pointer animate-in fade-in duration-150"
-            title="Simülasyonu Sıfırla"
+            title={t("resetSimulation")}
           >
             <RotateCcw className="w-3.5 h-3.5" />
           </button>
@@ -312,7 +317,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
           <button
             onClick={undo}
             className="p-1.5 rounded-lg bg-slate-800/80 hover:bg-slate-700 text-slate-300 transition-colors cursor-pointer animate-in fade-in duration-150"
-            title="Geri Al (Ctrl+Z)"
+            title={t("undo")}
           >
             <Undo2 className="w-3.5 h-3.5" />
           </button>
@@ -323,7 +328,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
           <button
             onClick={redo}
             className="p-1.5 rounded-lg bg-slate-800/80 hover:bg-slate-700 text-slate-300 transition-colors cursor-pointer animate-in fade-in duration-150"
-            title="İleri Al (Ctrl+Y)"
+            title={t("redo")}
           >
             <Redo2 className="w-3.5 h-3.5" />
           </button>
@@ -333,10 +338,10 @@ export const Toolbar: React.FC<ToolbarProps> = ({
         <button
           onClick={onOpenTruthTable}
           className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-indigo-950/70 hover:bg-indigo-900 border border-indigo-700/50 text-indigo-300 text-xs font-semibold transition-colors cursor-pointer"
-          title="Otomatik Doğruluk Tablosu"
+          title={t("truthTableTooltip")}
         >
           <TableProperties className="w-3.5 h-3.5" />
-          <span className="hidden md:inline">Truth Table</span>
+          <span className="hidden md:inline">{t("truthTable")}</span>
         </button>
 
         {/* Right Inspector Panel Toggle */}
@@ -347,7 +352,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
               ? "bg-slate-800 border-slate-700 text-emerald-400 hover:bg-slate-700"
               : "bg-slate-800/80 border-slate-700/60 text-slate-400 hover:text-white hover:bg-slate-700"
           }`}
-          title={isInspectorOpen ? "Özellik Panelini Kapat" : "Özellik Panelini Aç"}
+          title={isInspectorOpen ? t("closeInspector") : t("openInspector")}
         >
           {isInspectorOpen ? <PanelRightClose className="w-4 h-4" /> : <PanelRight className="w-4 h-4" />}
         </button>
@@ -356,7 +361,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
         <button
           onClick={toggleFullscreen}
           className="p-1.5 rounded-lg bg-slate-800/80 hover:bg-slate-700 text-slate-300 hover:text-white transition-colors cursor-pointer hidden sm:block"
-          title={isFullscreen ? "Tam Ekrandan Çık" : "Tam Ekrana Geç"}
+          title={isFullscreen ? t("exitFullscreen") : t("enterFullscreen")}
         >
           {isFullscreen ? (
             <Minimize2 className="w-3.5 h-3.5 text-emerald-400" />
@@ -377,18 +382,48 @@ export const Toolbar: React.FC<ToolbarProps> = ({
                 ? "bg-slate-800 border-slate-700 text-white"
                 : "bg-slate-800/80 border-slate-700/60 text-slate-400 hover:text-white hover:bg-slate-700"
             }`}
-            title="Daha Fazla İşlem & Ayarlar"
+            title={t("moreOptions")}
           >
             <MoreVertical className="w-4 h-4" />
           </button>
 
           {isMoreMenuOpen && (
             <div className="absolute right-0 top-full mt-2 w-56 rounded-xl border border-slate-800 bg-slate-900/95 py-2 shadow-2xl backdrop-blur-xl z-50 text-xs text-slate-300 animate-in fade-in zoom-in-95 duration-100">
+              {/* Language Switcher Section in 3-dots Menu */}
+              <div className="px-3 py-2 border-b border-slate-800/80 flex items-center justify-between">
+                <span className="flex items-center gap-2 text-xs text-slate-300 font-medium">
+                  <Globe className="w-3.5 h-3.5 text-indigo-400" />
+                  <span>{t("language")}</span>
+                </span>
+                <div className="flex items-center gap-1 bg-slate-950 p-0.5 rounded-lg border border-slate-800">
+                  <button
+                    onClick={() => setLocale("en")}
+                    className={`px-2 py-0.5 rounded text-[10px] font-bold transition-colors cursor-pointer ${
+                      locale === "en"
+                        ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/40"
+                        : "text-slate-400 hover:text-white"
+                    }`}
+                  >
+                    EN
+                  </button>
+                  <button
+                    onClick={() => setLocale("tr")}
+                    className={`px-2 py-0.5 rounded text-[10px] font-bold transition-colors cursor-pointer ${
+                      locale === "tr"
+                        ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/40"
+                        : "text-slate-400 hover:text-white"
+                    }`}
+                  >
+                    TR
+                  </button>
+                </div>
+              </div>
+
               {/* Simulation Frequency in More Menu */}
               <div className="px-3 py-1.5 border-b border-slate-800/80">
                 <div className="flex items-center justify-between text-[11px] text-slate-400 mb-1">
                   <span className="flex items-center gap-1">
-                    <Gauge className="w-3 h-3" /> Simülasyon Hızı
+                    <Gauge className="w-3 h-3" /> {t("simulationSpeed")}
                   </span>
                   <span className="font-mono text-emerald-400 font-bold">{tickRateHz} Hz</span>
                 </div>
@@ -413,7 +448,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
               <div className="px-3 py-2 border-b border-slate-800/80 flex items-center justify-between">
                 <span className="flex items-center gap-2 text-xs text-slate-300">
                   <Map className="w-3.5 h-3.5 text-sky-400" />
-                  <span>Mini Harita (Minimap)</span>
+                  <span>{t("minimap")}</span>
                 </span>
                 <button
                   onClick={toggleMinimap}
@@ -423,7 +458,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
                       : "bg-slate-800 text-slate-400 border border-slate-700"
                   }`}
                 >
-                  {showMinimap ? "AÇIK" : "KAPALI"}
+                  {showMinimap ? t("on") : t("off")}
                 </button>
               </div>
 
@@ -433,7 +468,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
                 className="w-full flex items-center gap-2 px-3 py-2 hover:bg-slate-800 hover:text-white transition-colors text-left cursor-pointer"
               >
                 <Download className="w-3.5 h-3.5 text-sky-400" />
-                <span>Devreyi JSON İndir</span>
+                <span>{t("exportJSON")}</span>
               </button>
 
               <button
@@ -441,7 +476,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
                 className="w-full flex items-center gap-2 px-3 py-2 hover:bg-slate-800 hover:text-white transition-colors text-left cursor-pointer"
               >
                 <Upload className="w-3.5 h-3.5 text-emerald-400" />
-                <span>JSON Dosyası Yükle</span>
+                <span>{t("importJSON")}</span>
               </button>
 
               <div className="my-1 border-t border-slate-800" />
@@ -450,10 +485,10 @@ export const Toolbar: React.FC<ToolbarProps> = ({
                 onClick={async () => {
                   setIsMoreMenuOpen(false);
                   const ok = await confirmDialog({
-                    title: "Tuvali Temizle",
-                    message: "Devredeki tüm parçalar ve bağlantılar silinecektir. Bu işlemi yapmak istediğinizden emin misiniz?",
-                    confirmText: "Tümünü Temizle",
-                    cancelText: "Vazgeç",
+                    title: t("clearCanvasTitle"),
+                    message: t("clearCanvasMsg"),
+                    confirmText: t("clearAll"),
+                    cancelText: t("giveUp"),
                     type: "danger",
                   });
                   if (ok) {
@@ -463,7 +498,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
                 className="w-full flex items-center gap-2 px-3 py-2 hover:bg-rose-950/50 text-rose-400 hover:text-rose-300 transition-colors text-left cursor-pointer"
               >
                 <Trash2 className="w-3.5 h-3.5" />
-                <span>Tuvali Temizle</span>
+                <span>{t("clearCanvas")}</span>
               </button>
             </div>
           )}

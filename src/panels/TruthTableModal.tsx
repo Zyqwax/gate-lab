@@ -4,6 +4,7 @@ import React, { useMemo } from 'react';
 import { useCircuitStore } from '../store/circuitStore';
 import { defaultSimulator } from '../engine/simulator';
 import { CircuitModel, Signal } from '../engine/types';
+import { useTranslation } from '../i18n';
 import { X, CheckCircle2, Table } from 'lucide-react';
 
 interface TruthTableModalProps {
@@ -12,6 +13,7 @@ interface TruthTableModalProps {
 }
 
 export const TruthTableModal: React.FC<TruthTableModalProps> = ({ isOpen, onClose }) => {
+  const { t } = useTranslation();
   const components = useCircuitStore((state) => state.components);
   const wires = useCircuitStore((state) => state.wires);
 
@@ -80,11 +82,12 @@ export const TruthTableModal: React.FC<TruthTableModalProps> = ({ isOpen, onClos
         <div className="p-4 border-b border-slate-800 flex items-center justify-between bg-slate-900/60">
           <div className="flex items-center gap-2">
             <Table className="w-4 h-4 text-emerald-400" />
-            <h2 className="text-sm font-bold text-white">Otomatik Doğruluk Tablosu (Truth Table)</h2>
+            <h2 className="text-sm font-bold text-white">{t('truthTableModalTitle')}</h2>
           </div>
           <button
             onClick={onClose}
             className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer"
+            title={t('close')}
           >
             <X className="w-4 h-4" />
           </button>
@@ -94,11 +97,11 @@ export const TruthTableModal: React.FC<TruthTableModalProps> = ({ isOpen, onClos
         <div className="p-4 overflow-y-auto flex-1">
           {inputs.length === 0 || outputs.length === 0 ? (
             <div className="text-center py-10 text-slate-500 text-xs">
-              Tablo oluşturmak için devrenizde en az 1 Switch (giriş) ve 1 LED / Probe (çıkış) bulunmalıdır.
+              {t('truthTableEmptyDesc')}
             </div>
           ) : inputs.length > 8 ? (
             <div className="text-center py-10 text-amber-500 text-xs">
-              Çok fazla giriş var ({inputs.length}). Maksimum 8 giriş desteklenmektedir ($2^8 = 256$ durum).
+              {t('truthTableTooManyInputs', { count: inputs.length })}
             </div>
           ) : (
             <div className="overflow-x-auto rounded-lg border border-slate-800">
@@ -167,13 +170,13 @@ export const TruthTableModal: React.FC<TruthTableModalProps> = ({ isOpen, onClos
         <div className="p-3 bg-slate-950 border-t border-slate-800 flex items-center justify-between text-xs text-slate-400">
           <div className="flex items-center gap-1.5">
             <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
-            <span>{rows.length} durum başarıyla simüle edildi</span>
+            <span>{t('truthTableSuccessCount', { count: rows.length })}</span>
           </div>
           <button
             onClick={onClose}
             className="px-3 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs cursor-pointer transition-colors"
           >
-            Kapat
+            {t('close')}
           </button>
         </div>
       </div>

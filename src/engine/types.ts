@@ -8,6 +8,10 @@ export interface PinDef {
   dir: PinDirection;
   label?: string;
   description?: string;
+  descriptionI18n?: {
+    en: string;
+    tr: string;
+  };
 }
 
 export interface ComponentDef<TParams = any, TState = any> {
@@ -15,6 +19,18 @@ export interface ComponentDef<TParams = any, TState = any> {
   category: 'gate' | 'io' | 'display' | 'sequential' | 'block';
   name: string;
   description?: string;
+  nameI18n?: {
+    en: string;
+    tr: string;
+  };
+  descriptionI18n?: {
+    en: string;
+    tr: string;
+  };
+  categoryI18n?: {
+    en: string;
+    tr: string;
+  };
   pins: PinDef[];
   eval: (
     inputs: Record<string, Signal>,

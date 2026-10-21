@@ -3,6 +3,8 @@
 import React from 'react';
 import { ComponentDef } from '../../engine/types';
 import { ComponentIcon } from '../icons/ComponentIcon';
+import { getLocalizedComponentDef } from '../../components-lib/registry';
+import { useTranslation } from '../../i18n';
 import { X, Info, Zap, HelpCircle } from 'lucide-react';
 
 interface ComponentInfoModalProps {
@@ -16,7 +18,19 @@ export const ComponentInfoModal: React.FC<ComponentInfoModalProps> = ({
   isOpen,
   onClose,
 }) => {
+  const { t, locale } = useTranslation();
+
   if (!isOpen || !def) return null;
+
+  const localizedDef = getLocalizedComponentDef(def, locale);
+
+  const categoryMap: Record<string, string> = {
+    gate: t('grpGates'),
+    io: t('grpInputs'),
+    display: t('grpOutputs'),
+    block: t('grpBlocks'),
+    sequential: t('grpSequential'),
+  };
 
   return (
     <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4 select-none">
@@ -29,13 +43,13 @@ export const ComponentInfoModal: React.FC<ComponentInfoModalProps> = ({
             </div>
             <div>
               <h2 className="text-sm font-bold text-white flex items-center gap-2">
-                <span>{def.name}</span>
+                <span>{localizedDef.name}</span>
                 <span className="text-[10px] font-mono uppercase px-1.5 py-0.2 rounded bg-slate-800 text-sky-400 border border-slate-700">
-                  {def.type}
+                  {localizedDef.type}
                 </span>
               </h2>
               <p className="text-[11px] text-slate-400 font-mono capitalize">
-                Kategori: {def.category}
+                {t('componentCategory')}: {categoryMap[localizedDef.category] || localizedDef.category}
               </p>
             </div>
           </div>
@@ -43,7 +57,7 @@ export const ComponentInfoModal: React.FC<ComponentInfoModalProps> = ({
           <button
             onClick={onClose}
             className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer"
-            title="Kapat"
+            title={t('close')}
           >
             <X className="w-4 h-4" />
           </button>
@@ -54,10 +68,10 @@ export const ComponentInfoModal: React.FC<ComponentInfoModalProps> = ({
           {/* Symbol Preview */}
           <div className="p-4 rounded-xl border border-slate-800 bg-slate-950 flex flex-col items-center justify-center gap-2">
             <div className="text-[10px] font-mono text-slate-500 uppercase tracking-wider">
-              Şematik Sembol
+              {t('schematicSymbol')}
             </div>
             <div className="py-2">
-              <ComponentIcon type={def.type} className="w-16 h-12 text-sky-400 drop-shadow-md" />
+              <ComponentIcon type={localizedDef.type} className="w-16 h-12 text-sky-400 drop-shadow-md" />
             </div>
           </div>
 
@@ -65,10 +79,10 @@ export const ComponentInfoModal: React.FC<ComponentInfoModalProps> = ({
           <div>
             <h3 className="text-xs font-bold text-slate-200 mb-1.5 flex items-center gap-1.5">
               <Zap className="w-3.5 h-3.5 text-emerald-400" />
-              <span>Çalışma Prensibi</span>
+              <span>{t('workingPrinciple')}</span>
             </h3>
             <p className="text-slate-400 leading-relaxed bg-slate-950/40 p-3 rounded-lg border border-slate-800/80">
-              {def.description || 'Bu bileşen için özel bir açıklama tanımlanmamıştır.'}
+              {localizedDef.description || t('noPrincipleDefined')}
             </p>
           </div>
 
@@ -76,19 +90,19 @@ export const ComponentInfoModal: React.FC<ComponentInfoModalProps> = ({
           <div>
             <h3 className="text-xs font-bold text-slate-200 mb-2 flex items-center gap-1.5">
               <HelpCircle className="w-3.5 h-3.5 text-indigo-400" />
-              <span>Giriş ve Çıkış Pinleri</span>
+              <span>{t('pinsHeader')}</span>
             </h3>
             <div className="rounded-lg border border-slate-800 overflow-hidden">
               <table className="w-full text-left text-xs border-collapse">
                 <thead className="bg-slate-950 text-slate-400 font-mono text-[11px] border-b border-slate-800">
                   <tr>
-                    <th className="py-2 px-3">Pin</th>
-                    <th className="py-2 px-3">Yön</th>
-                    <th className="py-2 px-3">Açıklama</th>
+                    <th className="py-2 px-3">{t('pinCol')}</th>
+                    <th className="py-2 px-3">{t('directionCol')}</th>
+                    <th className="py-2 px-3">{t('descriptionCol')}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-800/60 font-mono">
-                  {def.pins.map((pin) => (
+                  {localizedDef.pins.map((pin) => (
                     <tr key={pin.id} className="hover:bg-slate-800/30">
                       <td className="py-2 px-3 font-bold text-slate-200">
                         {pin.label || pin.id}
@@ -103,11 +117,11 @@ export const ComponentInfoModal: React.FC<ComponentInfoModalProps> = ({
                               : 'bg-indigo-950 text-indigo-400 border border-indigo-800/60'
                           }`}
                         >
-                          {pin.dir === 'in' ? 'Giriş (IN)' : pin.dir === 'out' ? 'Çıkış (OUT)' : 'G/Ç (IO)'}
+                          {pin.dir === 'in' ? t('pinDirIn') : pin.dir === 'out' ? t('pinDirOut') : t('pinDirIO')}
                         </span>
                       </td>
                       <td className="py-2 px-3 text-slate-400 font-sans text-[11px]">
-                        {pin.description || `${pin.label || pin.id} sinyali`}
+                        {pin.description || t('pinSignalFallback', { pin: pin.label || pin.id })}
                       </td>
                     </tr>
                   ))}
@@ -123,7 +137,7 @@ export const ComponentInfoModal: React.FC<ComponentInfoModalProps> = ({
             onClick={onClose}
             className="px-4 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold cursor-pointer transition-colors"
           >
-            Anladım
+            {t('gotIt')}
           </button>
         </div>
       </div>

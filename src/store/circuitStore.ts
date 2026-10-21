@@ -112,7 +112,10 @@ export const useCircuitStore = create<CircuitState>((set, get) => {
     historyFuture: [],
 
     currentProjectId: null,
-    currentProjectName: 'İsimsiz Devre Projesi',
+    currentProjectName:
+      typeof window !== 'undefined' && localStorage.getItem('gatelab_locale') === 'tr'
+        ? 'İsimsiz Devre Projesi'
+        : 'Untitled Circuit Project',
     isSaved: true,
     showMinimap: true,
     toggleMinimap: () => set((state) => ({ showMinimap: !state.showMinimap })),
@@ -143,9 +146,13 @@ export const useCircuitStore = create<CircuitState>((set, get) => {
       if (typeof window === 'undefined') return false;
 
       const id = currentProjectId || `circuit_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+      const defaultName =
+        typeof window !== 'undefined' && localStorage.getItem('gatelab_locale') === 'tr'
+          ? 'İsimsiz Devre Projesi'
+          : 'Untitled Circuit Project';
       saveCircuit({
         id,
-        name: currentProjectName || 'İsimsiz Devre Projesi',
+        name: currentProjectName || defaultName,
         createdAt: Date.now(),
         updatedAt: Date.now(),
         circuit: {

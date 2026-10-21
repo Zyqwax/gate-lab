@@ -1,5 +1,6 @@
 import { CircuitModel } from '../engine/types';
-import { TEMPLATES } from '../templates/circuits';
+import { TEMPLATES, getLocalizedTemplate } from '../templates/circuits';
+import { Locale } from '../i18n/translations';
 
 export interface SavedCircuit {
   id: string;
@@ -12,19 +13,26 @@ export interface SavedCircuit {
 
 const STORAGE_KEY = 'gate_lab_circuits_v1';
 
+function getStoredLocale(): Locale {
+  if (typeof window === 'undefined') return 'en';
+  return (localStorage.getItem('gatelab_locale') as Locale) || 'en';
+}
+
 export function getSavedCircuits(): SavedCircuit[] {
   if (typeof window === 'undefined') return [];
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) {
       // First time initialization: populate default starter projects!
+      const locale = getStoredLocale();
+      const starterTemplate = getLocalizedTemplate(TEMPLATES[0], locale);
       const defaultProject: SavedCircuit = {
         id: 'circuit_starter_full_adder',
-        name: 'Full Adder (Varsayılan Proje)',
-        description: '2x XOR, 2x AND, 1x OR kapıları ile oluşturulmuş 1-bit tam toplayıcı referans devresi.',
+        name: locale === 'tr' ? 'Full Adder (Varsayılan Proje)' : 'Full Adder (Starter Project)',
+        description: starterTemplate.description,
         createdAt: Date.now() - 3600000,
         updatedAt: Date.now(),
-        circuit: JSON.parse(JSON.stringify(TEMPLATES[0].circuit)),
+        circuit: JSON.parse(JSON.stringify(starterTemplate.circuit)),
       };
       saveCircuit(defaultProject);
       return [defaultProject];
@@ -74,12 +82,13 @@ export function deleteCircuit(id: string): void {
   }
 }
 
-export function createBlankCircuit(name?: string): SavedCircuit {
+export function createBlankCircuit(name?: string, locale?: Locale): SavedCircuit {
+  const loc = locale || getStoredLocale();
   const id = `circuit_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
   const newCircuit: SavedCircuit = {
     id,
-    name: name?.trim() || 'İsimsiz Devre Projesi',
-    description: 'Boş tuval ile oluşturulmuş devre tasarımı.',
+    name: name?.trim() || (loc === 'tr' ? 'İsimsiz Devre Projesi' : 'Untitled Circuit Project'),
+    description: loc === 'tr' ? 'Boş tuval ile oluşturulmuş devre tasarımı.' : 'Circuit design created on blank canvas.',
     createdAt: Date.now(),
     updatedAt: Date.now(),
     circuit: {
@@ -93,12 +102,14 @@ export function createBlankCircuit(name?: string): SavedCircuit {
   return newCircuit;
 }
 
-export function createCircuitFromTemplate(templateId: string, customName?: string): SavedCircuit {
-  const tpl = TEMPLATES.find((t) => t.id === templateId) || TEMPLATES[0];
+export function createCircuitFromTemplate(templateId: string, customName?: string, locale?: Locale): SavedCircuit {
+  const loc = locale || getStoredLocale();
+  const rawTpl = TEMPLATES.find((t) => t.id === templateId) || TEMPLATES[0];
+  const tpl = getLocalizedTemplate(rawTpl, loc);
   const id = `circuit_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
   const newCircuit: SavedCircuit = {
     id,
-    name: customName?.trim() || `${tpl.name} Projesi`,
+    name: customName?.trim() || (loc === 'tr' ? `${tpl.name} Projesi` : `${tpl.name} Project`),
     description: tpl.description,
     createdAt: Date.now(),
     updatedAt: Date.now(),
@@ -108,8 +119,9 @@ export function createCircuitFromTemplate(templateId: string, customName?: strin
   return newCircuit;
 }
 
-export function createCircuitFromJSON(jsonStr: string, customName?: string): SavedCircuit | null {
+export function createCircuitFromJSON(jsonStr: string, customName?: string, locale?: Locale): SavedCircuit | null {
   try {
+    const loc = locale || getStoredLocale();
     let parsed = JSON.parse(jsonStr);
     if (parsed.circuit) parsed = parsed.circuit;
 
@@ -120,8 +132,8 @@ export function createCircuitFromJSON(jsonStr: string, customName?: string): Sav
     const id = `circuit_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
     const newCircuit: SavedCircuit = {
       id,
-      name: customName?.trim() || 'İçe Aktarılan Devre',
-      description: 'JSON dosyasından içeri aktarıldı.',
+      name: customName?.trim() || (loc === 'tr' ? 'İçe Aktarılan Devre' : 'Imported Circuit'),
+      description: loc === 'tr' ? 'JSON dosyasından içeri aktarıldı.' : 'Imported from JSON file.',
       createdAt: Date.now(),
       updatedAt: Date.now(),
       circuit: {

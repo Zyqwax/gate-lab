@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import './globals.css';
 import { GlobalDialog } from '../components/ui/GlobalDialog';
+import { LanguageSync } from '../i18n/LanguageSync';
 
 export const metadata: Metadata = {
   title: 'GateLab — Logic Circuit Playground',
@@ -16,8 +17,9 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="tr" className="dark">
+    <html lang="en" className="dark">
       <body className="min-h-screen bg-slate-950 text-slate-100 antialiased">
+        <LanguageSync />
         {children}
         <GlobalDialog />
       </body>

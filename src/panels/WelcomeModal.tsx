@@ -1,8 +1,9 @@
 'use client';
 
 import React, { useRef, useState } from 'react';
-import { TEMPLATES, CircuitTemplate } from '../templates/circuits';
+import { CircuitTemplate, getLocalizedTemplates } from '../templates/circuits';
 import { useCircuitStore } from '../store/circuitStore';
+import { useTranslation } from '../i18n';
 import { PlusCircle, Sparkles, FileUp, X, ArrowRight, AlertCircle, CheckCircle2 } from 'lucide-react';
 
 interface WelcomeModalProps {
@@ -11,6 +12,7 @@ interface WelcomeModalProps {
 }
 
 export const WelcomeModal: React.FC<WelcomeModalProps> = ({ isOpen, onClose }) => {
+  const { t, locale } = useTranslation();
   const loadTemplate = useCircuitStore((state) => state.loadTemplate);
   const clearCircuit = useCircuitStore((state) => state.clearCircuit);
   const importJSON = useCircuitStore((state) => state.importJSON);
@@ -19,6 +21,8 @@ export const WelcomeModal: React.FC<WelcomeModalProps> = ({ isOpen, onClose }) =
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   if (!isOpen) return null;
+
+  const templates = getLocalizedTemplates(locale);
 
   const handleStartBlank = () => {
     clearCircuit();
@@ -41,7 +45,7 @@ export const WelcomeModal: React.FC<WelcomeModalProps> = ({ isOpen, onClose }) =
       try {
         const content = event.target?.result as string;
         if (!content) {
-          setImportError('Dosya içeriği boş.');
+          setImportError(t('fileEmptyError'));
           return;
         }
 
@@ -49,15 +53,15 @@ export const WelcomeModal: React.FC<WelcomeModalProps> = ({ isOpen, onClose }) =
         if (success) {
           onClose();
         } else {
-          setImportError('Geçersiz devre JSON formatı. "components" veya "wires" alanı eksik.');
+          setImportError(t('invalidFormatError'));
         }
       } catch (err) {
-        setImportError('Dosya okunurken hata oluştu. Lütfen geçerli bir JSON dosyası seçin.');
+        setImportError(t('fileReadError'));
       }
     };
 
     reader.onerror = () => {
-      setImportError('Dosya okunamadı.');
+      setImportError(t('fileReadError'));
     };
 
     reader.readAsText(file);
@@ -75,17 +79,17 @@ export const WelcomeModal: React.FC<WelcomeModalProps> = ({ isOpen, onClose }) =
             </div>
             <div>
               <h2 className="text-lg font-bold text-white tracking-tight flex items-center gap-2">
-                GateLab Devre Editörüne Hoş Geldiniz
+                {t('welcomeTitle')}
               </h2>
               <p className="text-xs text-slate-400 mt-0.5">
-                Nasıl başlamak istersiniz? Devrenizi sıfırdan kurabilir, hazır şablon açabilir veya bir JSON dosyası yükleyebilirsiniz.
+                {t('welcomeSub')}
               </p>
             </div>
           </div>
           <button
             onClick={onClose}
             className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer"
-            title="Kapat"
+            title={t('close')}
           >
             <X className="w-4 h-4" />
           </button>
@@ -103,7 +107,7 @@ export const WelcomeModal: React.FC<WelcomeModalProps> = ({ isOpen, onClose }) =
           {/* Section 1: Blank Canvas */}
           <div>
             <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">
-              1. Temiz Başlangıç
+              {t('welcomeCleanStart')}
             </h3>
             <button
               onClick={handleStartBlank}
@@ -115,10 +119,10 @@ export const WelcomeModal: React.FC<WelcomeModalProps> = ({ isOpen, onClose }) =
                 </div>
                 <div>
                   <div className="text-sm font-semibold text-slate-100 group-hover:text-emerald-300">
-                    Boş Devre ile Başla
+                    {t('welcomeBlankTitle')}
                   </div>
                   <div className="text-xs text-slate-400 mt-0.5">
-                    Tertemiz bir tuval aç. Sol panelden kapıları ve parçaları sürükleyip devreni kendin kur.
+                    {t('welcomeBlankDesc')}
                   </div>
                 </div>
               </div>
@@ -130,10 +134,10 @@ export const WelcomeModal: React.FC<WelcomeModalProps> = ({ isOpen, onClose }) =
           <div>
             <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3 flex items-center gap-1.5">
               <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-              <span>2. Hazır Şablonlar (Önerilen)</span>
+              <span>{t('welcomeTemplatesTitle')}</span>
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              {TEMPLATES.map((tpl) => (
+              {templates.map((tpl) => (
                 <button
                   key={tpl.id}
                   onClick={() => handleSelectTemplate(tpl)}
@@ -150,7 +154,7 @@ export const WelcomeModal: React.FC<WelcomeModalProps> = ({ isOpen, onClose }) =
                       </span>
                       {tpl.id === 'full-adder' && (
                         <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-indigo-950 text-indigo-300 border border-indigo-800/80">
-                          Önerilen MVP
+                          {t('welcomeRecommendedTag')}
                         </span>
                       )}
                     </div>
@@ -161,7 +165,7 @@ export const WelcomeModal: React.FC<WelcomeModalProps> = ({ isOpen, onClose }) =
                   <div className="mt-3 pt-2 border-t border-slate-800/60 flex items-center justify-between text-[10px] text-slate-500 font-mono">
                     <span>{tpl.category}</span>
                     <span className="text-indigo-400 group-hover:translate-x-0.5 transition-transform flex items-center gap-0.5">
-                      Yükle →
+                      {t('loadTemplateBtn')}
                     </span>
                   </div>
                 </button>
@@ -169,11 +173,11 @@ export const WelcomeModal: React.FC<WelcomeModalProps> = ({ isOpen, onClose }) =
             </div>
           </div>
 
-          {/* Section 3: Import JSON (Fully functional!) */}
+          {/* Section 3: Import JSON */}
           <div>
             <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3 flex items-center gap-1.5">
               <FileUp className="w-3.5 h-3.5 text-sky-400" />
-              <span>3. Kendi Dosyanı Yükle (.json)</span>
+              <span>{t('welcomeImportTitle')}</span>
             </h3>
 
             <input
@@ -194,13 +198,13 @@ export const WelcomeModal: React.FC<WelcomeModalProps> = ({ isOpen, onClose }) =
                 </div>
                 <div>
                   <div className="text-sm font-semibold text-slate-100 group-hover:text-sky-300 flex items-center gap-2">
-                    <span>JSON Devre Dosyası İçe Aktar</span>
+                    <span>{t('welcomeImportButton')}</span>
                     <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-950 text-emerald-400 border border-emerald-800/60 flex items-center gap-1">
-                      <CheckCircle2 className="w-2.5 h-2.5" /> Aktif
+                      <CheckCircle2 className="w-2.5 h-2.5" /> {t('welcomeActiveTag')}
                     </span>
                   </div>
                   <div className="text-xs text-slate-400 mt-0.5">
-                    Önceden indirdiğin bir GateLab JSON devre dosyasını seçerek tuvale yükle.
+                    {t('welcomeImportDesc')}
                   </div>
                 </div>
               </div>
@@ -211,12 +215,12 @@ export const WelcomeModal: React.FC<WelcomeModalProps> = ({ isOpen, onClose }) =
 
         {/* Footer */}
         <div className="p-4 bg-slate-950 border-t border-slate-800 flex items-center justify-between text-xs text-slate-500">
-          <span>* Simülasyon elle başlatılmak üzere duraklatılmış olarak açılır.</span>
+          <span>{t('welcomeSimNotice')}</span>
           <button
             onClick={onClose}
             className="px-4 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-medium cursor-pointer transition-colors"
           >
-            Geç / Kapat
+            {t('welcomeSkip')}
           </button>
         </div>
       </div>

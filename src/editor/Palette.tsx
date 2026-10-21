@@ -1,10 +1,11 @@
 "use client";
 
 import React, { useState } from "react";
-import { COMPONENT_DEFINITIONS } from "../components-lib/registry";
-import { TEMPLATES } from "../templates/circuits";
+import { COMPONENT_DEFINITIONS, getLocalizedComponentDefinitions } from "../components-lib/registry";
+import { TEMPLATES, getLocalizedTemplates } from "../templates/circuits";
 import { useCircuitStore } from "../store/circuitStore";
 import { confirmDialog } from "../store/dialogStore";
+import { useTranslation } from "../i18n";
 import {
   Search,
   Plus,
@@ -33,51 +34,55 @@ interface ComponentGroup {
 }
 
 export const Palette: React.FC = () => {
+  const { t, locale } = useTranslation();
   const [searchTerm, setSearchTerm] = useState("");
   const [activeCategory, setActiveCategory] = useState<string>("all");
   const addComponent = useCircuitStore((state) => state.addComponent);
   const loadTemplate = useCircuitStore((state) => state.loadTemplate);
 
   const categories = [
-    { id: "all", label: "Tümü", icon: Boxes },
-    { id: "gate", label: "Kapılar", icon: Cpu },
-    { id: "io", label: "Girişler", icon: ToggleLeft },
-    { id: "display", label: "Çıkışlar", icon: Activity },
-    { id: "block", label: "Bloklar", icon: Binary },
-    { id: "templates", label: "Şablonlar", icon: Sparkles },
+    { id: "all", label: t("catAll"), icon: Boxes },
+    { id: "gate", label: t("catGates"), icon: Cpu },
+    { id: "io", label: t("catInputs"), icon: ToggleLeft },
+    { id: "display", label: t("catOutputs"), icon: Activity },
+    { id: "block", label: t("catBlocks"), icon: Binary },
+    { id: "templates", label: t("catTemplates"), icon: Sparkles },
   ];
+
+  const localizedComponents = getLocalizedComponentDefinitions(locale);
+  const localizedTemplates = getLocalizedTemplates(locale);
 
   // Group definitions
   const allGroups: ComponentGroup[] = [
     {
       id: "gate",
-      name: "Mantık Kapıları",
+      name: t("grpGates"),
       icon: Zap,
-      items: COMPONENT_DEFINITIONS.filter((c) => c.category === "gate"),
+      items: localizedComponents.filter((c) => c.category === "gate"),
     },
     {
       id: "io",
-      name: "Giriş & Güç",
+      name: t("grpInputs"),
       icon: Power,
-      items: COMPONENT_DEFINITIONS.filter((c) => c.category === "io"),
+      items: localizedComponents.filter((c) => c.category === "io"),
     },
     {
       id: "display",
-      name: "Çıkış & Göstergeler",
+      name: t("grpOutputs"),
       icon: Eye,
-      items: COMPONENT_DEFINITIONS.filter((c) => c.category === "display"),
+      items: localizedComponents.filter((c) => c.category === "display"),
     },
     {
       id: "block",
-      name: "Kombinasyonel Bloklar",
+      name: t("grpBlocks"),
       icon: Binary,
-      items: COMPONENT_DEFINITIONS.filter((c) => c.category === "block"),
+      items: localizedComponents.filter((c) => c.category === "block"),
     },
     {
       id: "sequential",
-      name: "Sıralı / Hafıza",
+      name: t("grpSequential"),
       icon: Layers,
-      items: COMPONENT_DEFINITIONS.filter((c) => c.category === "sequential"),
+      items: localizedComponents.filter((c) => c.category === "sequential"),
     },
   ];
 
@@ -109,7 +114,7 @@ export const Palette: React.FC = () => {
     })
     .filter(Boolean) as ComponentGroup[];
 
-  const filteredTemplates = TEMPLATES.filter(
+  const filteredTemplates = localizedTemplates.filter(
     (tpl) =>
       tpl.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       tpl.description.toLowerCase().includes(searchTerm.toLowerCase()),
@@ -134,7 +139,7 @@ export const Palette: React.FC = () => {
           <Search className="w-3.5 h-3.5 absolute left-2.5 text-slate-400 pointer-events-none" />
           <input
             type="text"
-            placeholder="Parça ara..."
+            placeholder={t("searchParts")}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="w-full bg-slate-950 border border-slate-800 rounded-lg pl-8 pr-7 py-1.5 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-emerald-500 transition-colors"
@@ -143,7 +148,7 @@ export const Palette: React.FC = () => {
             <button
               onClick={() => setSearchTerm("")}
               className="absolute right-2 p-0.5 text-slate-500 hover:text-slate-300 rounded cursor-pointer transition-colors"
-              title="Aramayı Temizle"
+              title={t("clearSearch")}
             >
               <X className="w-3.5 h-3.5" />
             </button>
@@ -175,14 +180,13 @@ export const Palette: React.FC = () => {
 
       {/* Grouped Components List */}
       <div className="flex-1 overflow-y-auto p-2 space-y-3.5">
-        {/* TEMPLATES SECTION */}
-        {(activeCategory === "all" || activeCategory === "templates") &&
-          filteredTemplates.length > 0 &&
-          (activeCategory === "templates" || !searchTerm) && (
+        {/* TEMPLATES SECTION - Only visible when templates category button is active */}
+        {activeCategory === "templates" && (
+          filteredTemplates.length > 0 ? (
             <div className="space-y-1.5">
-              <div className="flex items-center gap-1.5 px-1 py-0.5 text-[10px] font-mono uppercase tracking-wider text-slate-400 font-bold border-b border-slate-800/60 pb-1">
+              <div lang={locale} className="flex items-center gap-1.5 px-1 py-0.5 text-[10px] font-mono uppercase tracking-wider text-slate-400 font-bold border-b border-slate-800/60 pb-1">
                 <Sparkles className="w-3 h-3 text-amber-400" />
-                <span>Hazır Şablonlar</span>
+                <span>{t("grpTemplates")}</span>
               </div>
 
               {filteredTemplates.map((tpl) => (
@@ -190,9 +194,9 @@ export const Palette: React.FC = () => {
                   key={tpl.id}
                   onClick={async () => {
                     const ok = await confirmDialog({
-                      title: "Şablon Yükle",
-                      message: `"${tpl.name}" şablonu tuvale yüklensin mi? Mevcut çizim alanı güncellenecektir.`,
-                      confirmText: "Şablonu Yükle",
+                      title: t("loadTemplateTitle"),
+                      message: t("loadTemplateMsg", { name: tpl.name }),
+                      confirmText: t("loadTemplateAction"),
                       type: "info",
                     });
                     if (ok) {
@@ -207,15 +211,20 @@ export const Palette: React.FC = () => {
                     </span>
                   </div>
                   <div className="flex items-center justify-between text-[10px] text-slate-500 font-mono mt-2 pt-1.5 border-t border-slate-800/40">
-                    <span>{tpl.circuit.components.length} parça</span>
+                    <span>{t("partsCount", { count: tpl.circuit.components.length })}</span>
                     <span className="text-indigo-400 group-hover:translate-x-0.5 transition-transform flex items-center font-sans font-semibold">
-                      Yükle →
+                      {t("loadTemplateBtn")}
                     </span>
                   </div>
                 </div>
               ))}
             </div>
-          )}
+          ) : (
+            <div className="text-center py-8 text-xs text-slate-500">
+              {searchTerm ? t("noSearchResults", { term: searchTerm }) : t("noCircuitsTitle")}
+            </div>
+          )
+        )}
 
         {/* COMPONENT GROUPS */}
         {activeCategory !== "templates" &&
@@ -225,7 +234,7 @@ export const Palette: React.FC = () => {
             return (
               <div key={group.id} className="space-y-1.5">
                 {/* Group Name Header */}
-                <div className="flex items-center gap-1.5 px-1 py-0.5 text-xs font-mono uppercase tracking-wider text-slate-400 font-bold border-b border-slate-800/60 pb-1">
+                <div lang={locale} className="flex items-center gap-1.5 px-1 py-0.5 text-xs font-mono uppercase tracking-wider text-slate-400 font-bold border-b border-slate-800/60 pb-1">
                   <GroupIcon className="w-3 h-3 text-sky-400" />
                   <span>{group.name}</span>
                   <span className="text-[9px] text-slate-600 font-normal ml-auto">({group.items.length})</span>
@@ -264,7 +273,7 @@ export const Palette: React.FC = () => {
                       <div className="flex items-center gap-1 shrink-0">
                         <button
                           className="w-5.5 h-5.5 rounded bg-slate-800 hover:bg-emerald-600 text-slate-400 hover:text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-                          title="Tuvale Ekle"
+                          title={t("addToCanvas")}
                         >
                           <Plus className="w-3.5 h-3.5" />
                         </button>
@@ -276,6 +285,13 @@ export const Palette: React.FC = () => {
               </div>
             );
           })}
+
+        {/* Empty state for components */}
+        {activeCategory !== "templates" && filteredGroups.length === 0 && (
+          <div className="text-center py-8 text-xs text-slate-500">
+            {searchTerm ? t("noSearchResults", { term: searchTerm }) : t("noCircuitsTitle")}
+          </div>
+        )}
       </div>
 
       {/* Footer Info */}

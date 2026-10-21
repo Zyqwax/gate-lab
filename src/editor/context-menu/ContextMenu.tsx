@@ -13,6 +13,7 @@ import {
   RotateCcw,
 } from 'lucide-react';
 import { Signal, getSignalColor } from '../../engine/signal';
+import { useTranslation } from '../../i18n';
 
 export interface ContextMenuState {
   isOpen: boolean;
@@ -48,6 +49,7 @@ export const ContextMenu: React.FC<ContextMenuProps> = ({
   onAddQuickComponent,
   onFitView,
 }) => {
+  const { t, locale } = useTranslation();
   if (!menu.isOpen) return null;
 
   // Keep menu within screen boundaries
@@ -65,8 +67,8 @@ export const ContextMenu: React.FC<ContextMenuProps> = ({
       {/* NODE CONTEXT MENU */}
       {menu.targetType === 'node' && menu.targetId && (
         <div className="flex flex-col">
-          <div className="px-3 py-1.5 border-b border-slate-800 text-[10px] font-mono text-slate-400 uppercase tracking-wider flex items-center justify-between">
-            <span>Eleman İşlemleri</span>
+          <div lang={locale} className="px-3 py-1.5 border-b border-slate-800 text-[10px] font-mono text-slate-400 uppercase tracking-wider flex items-center justify-between">
+            <span>{t('properties')}</span>
             <span className="text-sky-400 font-bold">{menu.data?.type}</span>
           </div>
 
@@ -78,7 +80,7 @@ export const ContextMenu: React.FC<ContextMenuProps> = ({
             className="flex items-center gap-2 px-3 py-2 hover:bg-slate-800 hover:text-white transition-colors cursor-pointer text-left"
           >
             <Settings className="w-3.5 h-3.5 text-sky-400" />
-            <span>Özellikler Paneli</span>
+            <span>{t('properties')}</span>
           </button>
 
           <button
@@ -89,7 +91,7 @@ export const ContextMenu: React.FC<ContextMenuProps> = ({
             className="flex items-center gap-2 px-3 py-2 hover:bg-slate-800 hover:text-white transition-colors cursor-pointer text-left"
           >
             <Info className="w-3.5 h-3.5 text-indigo-400" />
-            <span>Hakkında & Pin Bilgisi</span>
+            <span>{t('aboutComponent')}</span>
           </button>
 
           <button
@@ -100,7 +102,7 @@ export const ContextMenu: React.FC<ContextMenuProps> = ({
             className="flex items-center gap-2 px-3 py-2 hover:bg-slate-800 hover:text-white transition-colors cursor-pointer text-left"
           >
             <Copy className="w-3.5 h-3.5 text-emerald-400" />
-            <span>Klonla (Çoğalt)</span>
+            <span>{t('duplicate')}</span>
           </button>
 
           <button
@@ -111,7 +113,7 @@ export const ContextMenu: React.FC<ContextMenuProps> = ({
             className="flex items-center gap-2 px-3 py-2 hover:bg-slate-800 hover:text-white transition-colors cursor-pointer text-left"
           >
             <Unlink className="w-3.5 h-3.5 text-amber-400" />
-            <span>Kabloları Sök</span>
+            <span>{t('disconnectWires')}</span>
           </button>
 
           <div className="my-1 border-t border-slate-800" />
@@ -124,7 +126,7 @@ export const ContextMenu: React.FC<ContextMenuProps> = ({
             className="flex items-center gap-2 px-3 py-2 hover:bg-rose-950/60 text-rose-400 hover:text-rose-300 transition-colors cursor-pointer text-left"
           >
             <Trash2 className="w-3.5 h-3.5" />
-            <span>Elemanı Sil</span>
+            <span>{t('deleteNode')}</span>
           </button>
         </div>
       )}
@@ -132,8 +134,8 @@ export const ContextMenu: React.FC<ContextMenuProps> = ({
       {/* EDGE CONTEXT MENU */}
       {menu.targetType === 'edge' && menu.targetId && (
         <div className="flex flex-col">
-          <div className="px-3 py-1.5 border-b border-slate-800 text-[10px] font-mono text-slate-400 uppercase tracking-wider flex items-center justify-between">
-            <span>Kablo Sinyali</span>
+          <div lang={locale} className="px-3 py-1.5 border-b border-slate-800 text-[10px] font-mono text-slate-400 uppercase tracking-wider flex items-center justify-between">
+            <span>{t('wireSignal')}</span>
             <span
               className="font-bold px-1.5 py-0.2 rounded"
               style={{
@@ -148,7 +150,7 @@ export const ContextMenu: React.FC<ContextMenuProps> = ({
           <div className="px-3 py-2 text-[11px] text-slate-400 flex items-center gap-2">
             <Activity className="w-3.5 h-3.5 text-emerald-400" />
             <span>
-              Durum: {menu.data?.signal === 1 ? 'HIGH (5V)' : menu.data?.signal === 0 ? 'LOW (0V)' : 'Floating (Z)'}
+              {t('wireStatus')}: {menu.data?.signal === 1 ? 'HIGH (5V)' : menu.data?.signal === 0 ? 'LOW (0V)' : 'Floating (Z)'}
             </span>
           </div>
 
@@ -162,7 +164,7 @@ export const ContextMenu: React.FC<ContextMenuProps> = ({
             className="flex items-center gap-2 px-3 py-2 hover:bg-rose-950/60 text-rose-400 hover:text-rose-300 transition-colors cursor-pointer text-left"
           >
             <Trash2 className="w-3.5 h-3.5" />
-            <span>Kabloyu Sil</span>
+            <span>{t('deleteWire')}</span>
           </button>
         </div>
       )}
@@ -170,8 +172,8 @@ export const ContextMenu: React.FC<ContextMenuProps> = ({
       {/* PANE (CANVAS) CONTEXT MENU */}
       {menu.targetType === 'pane' && (
         <div className="flex flex-col">
-          <div className="px-3 py-1.5 border-b border-slate-800 text-[10px] font-mono text-slate-400 uppercase tracking-wider">
-            Hızlı Parça Ekle
+          <div lang={locale} className="px-3 py-1.5 border-b border-slate-800 text-[10px] font-mono text-slate-400 uppercase tracking-wider">
+            {t('quickAdd')}
           </div>
 
           <div className="grid grid-cols-2 gap-1 p-1.5">
@@ -207,7 +209,7 @@ export const ContextMenu: React.FC<ContextMenuProps> = ({
             className="flex items-center gap-2 px-3 py-2 hover:bg-slate-800 hover:text-white transition-colors cursor-pointer text-left"
           >
             <Maximize2 className="w-3.5 h-3.5 text-sky-400" />
-            <span>Görünümü Ortala</span>
+            <span>{t('fitView')}</span>
           </button>
         </div>
       )}

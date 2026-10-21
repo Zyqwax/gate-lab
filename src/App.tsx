@@ -8,9 +8,11 @@ import { Inspector } from './editor/Inspector';
 import { TruthTableModal } from './panels/TruthTableModal';
 import { WelcomeModal } from './panels/WelcomeModal';
 import { useCircuitStore } from './store/circuitStore';
+import { useTranslation } from './i18n';
 import { ChevronRight, ChevronLeft, Sliders } from 'lucide-react';
 
 export const App: React.FC = () => {
+  const { t } = useTranslation();
   const [isTruthTableOpen, setIsTruthTableOpen] = useState(false);
   const [isWelcomeOpen, setIsWelcomeOpen] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
@@ -72,9 +74,9 @@ export const App: React.FC = () => {
           <button
             onClick={() => setIsSidebarOpen(true)}
             className="absolute left-2 top-3 z-20 px-2.5 py-1.5 rounded-xl bg-slate-900/90 border border-slate-700/80 text-slate-300 hover:text-emerald-400 hover:border-emerald-500/50 shadow-xl backdrop-blur-md text-xs font-semibold flex items-center gap-1 transition-all cursor-pointer"
-            title="Parça Panelini Aç"
+            title={t("showSidebar")}
           >
-            <span>Parçalar</span>
+            <span>{t("openPalettePill")}</span>
             <ChevronRight className="w-3.5 h-3.5" />
           </button>
         )}
@@ -89,10 +91,10 @@ export const App: React.FC = () => {
           <button
             onClick={() => setIsInspectorOpen(true)}
             className="absolute right-2 top-3 z-20 px-2.5 py-1.5 rounded-xl bg-slate-900/90 border border-slate-700/80 text-slate-300 hover:text-emerald-400 hover:border-emerald-500/50 shadow-xl backdrop-blur-md text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer"
-            title="Özellikler Panelini Aç"
+            title={t("openInspector")}
           >
             <Sliders className="w-3.5 h-3.5 text-emerald-400" />
-            <span className="hidden sm:inline">Özellikler</span>
+            <span className="hidden sm:inline">{t("openInspectorPill")}</span>
             <ChevronLeft className="w-3.5 h-3.5" />
           </button>
         )}

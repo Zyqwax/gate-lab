@@ -9,6 +9,7 @@ import {
   createCircuitFromTemplate,
 } from '@/lib/circuitStorage';
 import { confirmDialog } from '@/store/dialogStore';
+import { useTranslation } from '@/i18n';
 import {
   Plus,
   Layers,
@@ -23,6 +24,7 @@ import {
 } from 'lucide-react';
 
 export default function DashboardPage() {
+  const { t, locale, setLocale } = useTranslation();
   const [circuits, setCircuits] = useState<SavedCircuit[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [isLoaded, setIsLoaded] = useState(false);
@@ -38,10 +40,10 @@ export default function DashboardPage() {
 
   const handleDelete = async (id: string, name: string) => {
     const ok = await confirmDialog({
-      title: 'Devreyi Sil',
-      message: `"${name}" devresi kalıcı olarak silinecektir. Bu işlem geri alınamaz.`,
-      confirmText: 'Devreyi Sil',
-      cancelText: 'Vazgeç',
+      title: t('deleteCircuitTitle'),
+      message: t('deleteCircuitMsg', { name }),
+      confirmText: t('deleteCircuitAction'),
+      cancelText: t('giveUp'),
       type: 'danger',
     });
     if (ok) {
@@ -81,16 +83,40 @@ export default function DashboardPage() {
               </span>
             </Link>
             <span className="text-slate-700">/</span>
-            <span className="text-xs font-semibold text-slate-300">Dashboard</span>
+            <span className="text-xs font-semibold text-slate-300">{t('dashboard')}</span>
           </div>
 
           <div className="flex items-center gap-3">
+            {/* Language Switcher */}
+            <div className="flex items-center gap-1 bg-slate-900 p-0.5 rounded-lg border border-slate-800">
+              <button
+                onClick={() => setLocale("en")}
+                className={`px-2 py-1 rounded text-xs font-bold transition-colors cursor-pointer ${
+                  locale === "en"
+                    ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/40"
+                    : "text-slate-400 hover:text-white"
+                }`}
+              >
+                EN
+              </button>
+              <button
+                onClick={() => setLocale("tr")}
+                className={`px-2 py-1 rounded text-xs font-bold transition-colors cursor-pointer ${
+                  locale === "tr"
+                    ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/40"
+                    : "text-slate-400 hover:text-white"
+                }`}
+              >
+                TR
+              </button>
+            </div>
+
             <Link
               href="/dashboard/new"
               className="flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-slate-950 font-bold text-xs shadow-lg shadow-emerald-600/25 transition-all cursor-pointer"
             >
               <Plus className="w-4 h-4 stroke-[3]" />
-              <span>Yeni Devre Oluştur</span>
+              <span>{t('createNewCircuit')}</span>
             </Link>
           </div>
         </div>
@@ -103,10 +129,10 @@ export default function DashboardPage() {
           <div>
             <h1 className="text-2xl font-bold tracking-tight text-white flex items-center gap-2">
               <Layers className="w-6 h-6 text-emerald-400" />
-              <span>Devre Projelerim</span>
+              <span>{t('myCircuits')}</span>
             </h1>
             <p className="text-xs text-slate-400 mt-1">
-              Yerel tarayıcınızda kayıtlı mantık devreleri ve şablonlarınız.
+              {t('myCircuitsSub')}
             </p>
           </div>
 
@@ -115,7 +141,7 @@ export default function DashboardPage() {
               <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
               <input
                 type="text"
-                placeholder="Projelerde ara..."
+                placeholder={t('searchProjects')}
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="w-full bg-slate-900 border border-slate-800 rounded-xl pl-9 pr-3 py-2 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-emerald-500 transition-colors"
@@ -126,20 +152,22 @@ export default function DashboardPage() {
 
         {/* Circuit Grid */}
         {!isLoaded ? (
-          <div className="py-20 text-center text-slate-500 text-xs">Yükleniyor...</div>
+          <div className="py-20 text-center text-slate-500 text-xs">...</div>
         ) : filteredCircuits.length === 0 ? (
           <div className="py-20 text-center rounded-2xl border border-dashed border-slate-800 bg-slate-900/30 p-8 flex flex-col items-center justify-center">
             <Cpu className="w-12 h-12 text-slate-600 mb-3 stroke-1" />
-            <h3 className="text-sm font-semibold text-slate-300">Henüz kayıtlı devre bulunamadı</h3>
+            <h3 className="text-sm font-semibold text-slate-300">
+              {searchTerm ? t('noSearchResults', { term: searchTerm }) : t('noCircuitsTitle')}
+            </h3>
             <p className="text-xs text-slate-500 mt-1 max-w-sm">
-              İlk devrenizi sıfırdan kurun veya hazır bir şablon seçerek hemen başlayın.
+              {t('noCircuitsSub')}
             </p>
             <Link
               href="/dashboard/new"
               className="mt-5 flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-slate-950 font-bold text-xs shadow-lg transition-all"
             >
               <Plus className="w-4 h-4 stroke-[3]" />
-              <span>Hemen Yeni Proje Başlat</span>
+              <span>{t('createFirstCircuit')}</span>
             </Link>
           </div>
         ) : (
@@ -147,7 +175,7 @@ export default function DashboardPage() {
             {filteredCircuits.map((item) => {
               const compCount = item.circuit.components?.length || 0;
               const wireCount = item.circuit.wires?.length || 0;
-              const dateStr = new Date(item.updatedAt).toLocaleDateString('tr-TR', {
+              const dateStr = new Date(item.updatedAt).toLocaleDateString(locale === 'tr' ? 'tr-TR' : 'en-US', {
                 day: '2-digit',
                 month: 'short',
                 year: 'numeric',
@@ -168,28 +196,28 @@ export default function DashboardPage() {
                       <button
                         onClick={() => handleDelete(item.id, item.name)}
                         className="p-1 rounded-lg text-slate-500 hover:text-rose-400 hover:bg-rose-950/40 transition-colors cursor-pointer"
-                        title="Devreyi Sil"
+                        title={t('delete')}
                       >
                         <Trash2 className="w-3.5 h-3.5" />
                       </button>
                     </div>
 
                     <p className="text-xs text-slate-400 line-clamp-2 min-h-[32px] mb-4">
-                      {item.description || 'Açıklama belirtilmemiş.'}
+                      {item.description || (locale === 'tr' ? 'Açıklama belirtilmemiş.' : 'No description provided.')}
                     </p>
 
                     <div className="flex items-center gap-3 text-[11px] font-mono text-slate-400 pb-3 border-b border-slate-800/60">
                       <span className="px-2 py-0.5 rounded bg-slate-800 text-slate-300">
-                        {compCount} parça
+                        {t('partsCount', { count: compCount })}
                       </span>
                       <span className="px-2 py-0.5 rounded bg-slate-800 text-slate-300">
-                        {wireCount} kablo
+                        {wireCount} {locale === 'tr' ? 'kablo' : 'wires'}
                       </span>
                     </div>
 
                     <div className="flex items-center gap-1.5 text-[10px] text-slate-500 mt-3">
                       <Clock className="w-3 h-3" />
-                      <span>Son Güncelleme: {dateStr}</span>
+                      <span>{t('lastSaved', { date: dateStr })}</span>
                     </div>
                   </div>
 
@@ -197,7 +225,7 @@ export default function DashboardPage() {
                     <button
                       onClick={() => handleExport(item)}
                       className="p-1.5 rounded-lg text-slate-400 hover:text-slate-200 hover:bg-slate-800 transition-colors text-xs flex items-center gap-1 cursor-pointer"
-                      title="JSON olarak indir"
+                      title={t('exportJSON')}
                     >
                       <Download className="w-3.5 h-3.5" />
                       <span className="text-[11px]">JSON</span>
@@ -207,7 +235,7 @@ export default function DashboardPage() {
                       href={`/dashboard/editor?id=${item.id}`}
                       className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-600/90 hover:bg-emerald-500 text-white font-semibold text-xs transition-colors"
                     >
-                      <span>Editörde Aç</span>
+                      <span>{t('openEditor')}</span>
                       <ExternalLink className="w-3 h-3" />
                     </Link>
                   </div>

@@ -2,7 +2,8 @@
 
 import React from 'react';
 import { useCircuitStore } from '../store/circuitStore';
-import { getComponentDef } from '../components-lib/registry';
+import { getComponentDef, getLocalizedComponentDef } from '../components-lib/registry';
+import { useTranslation } from '../i18n';
 import { Settings, Trash2, Tag, Palette as PaletteIcon, X, Sliders } from 'lucide-react';
 
 interface InspectorProps {
@@ -10,13 +11,15 @@ interface InspectorProps {
 }
 
 export const Inspector: React.FC<InspectorProps> = ({ onClose }) => {
+  const { t, locale } = useTranslation();
   const selectedId = useCircuitStore((state) => state.selectedComponentId);
   const components = useCircuitStore((state) => state.components);
   const updateComponentParams = useCircuitStore((state) => state.updateComponentParams);
   const removeComponent = useCircuitStore((state) => state.removeComponent);
 
   const comp = selectedId ? components.find((c) => c.id === selectedId) : null;
-  const def = comp ? getComponentDef(comp.type) : null;
+  const rawDef = comp ? getComponentDef(comp.type) : null;
+  const def = rawDef ? getLocalizedComponentDef(rawDef, locale) : null;
   const params = comp?.params || {};
 
   const ledColors = ['#10b981', '#ef4444', '#38bdf8', '#f59e0b', '#a855f7'];
@@ -27,7 +30,7 @@ export const Inspector: React.FC<InspectorProps> = ({ onClose }) => {
       <div className="flex items-center justify-between border-b border-slate-800 pb-2.5 mb-4">
         <div className="flex items-center gap-2 text-xs font-bold text-slate-200">
           <Sliders className="w-3.5 h-3.5 text-emerald-400" />
-          <span>Özellikler</span>
+          <span>{t('inspectorTitle')}</span>
           {comp && (
             <span className="text-[10px] font-mono px-1.5 py-0.2 rounded bg-slate-800 text-sky-400 border border-slate-700">
               {comp.type}
@@ -39,7 +42,7 @@ export const Inspector: React.FC<InspectorProps> = ({ onClose }) => {
           <button
             onClick={onClose}
             className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer"
-            title="Paneli Kapat"
+            title={t('close')}
           >
             <X className="w-3.5 h-3.5" />
           </button>
@@ -49,9 +52,9 @@ export const Inspector: React.FC<InspectorProps> = ({ onClose }) => {
       {!comp ? (
         <div className="flex-1 flex flex-col items-center justify-center text-center p-6 text-slate-500 text-xs">
           <Settings className="w-10 h-10 stroke-1 text-slate-600 mb-3 opacity-40 animate-spin-slow" />
-          <p className="font-semibold text-slate-400 mb-1">Eleman Seçilmedi</p>
+          <p className="font-semibold text-slate-400 mb-1">{t('inspectorTitle')}</p>
           <p className="text-[11px] text-slate-500">
-            Özelliklerini düzenlemek istediğiniz bir kapıya veya parçaya tıklayın.
+            {t('inspectorEmpty')}
           </p>
         </div>
       ) : (
@@ -60,7 +63,7 @@ export const Inspector: React.FC<InspectorProps> = ({ onClose }) => {
             {/* Label Field */}
             <div>
               <label className="text-[11px] font-medium text-slate-400 flex items-center gap-1 mb-1.5">
-                <Tag className="w-3 h-3" /> Etiket (İsim)
+                <Tag className="w-3 h-3" /> {t('componentLabel')}
               </label>
               <input
                 type="text"
@@ -75,7 +78,7 @@ export const Inspector: React.FC<InspectorProps> = ({ onClose }) => {
             {def?.category === 'gate' && params.inputs !== undefined && (
               <div>
                 <label className="text-[11px] font-medium text-slate-400 mb-1.5 block">
-                  Giriş Sayısı: <span className="font-mono text-emerald-400 font-bold">{params.inputs || 2}</span>
+                  {t('inputCount')}: <span className="font-mono text-emerald-400 font-bold">{params.inputs || 2}</span>
                 </label>
                 <input
                   type="range"
@@ -87,8 +90,8 @@ export const Inspector: React.FC<InspectorProps> = ({ onClose }) => {
                   className="w-full accent-emerald-500 cursor-pointer"
                 />
                 <div className="flex justify-between text-[9px] font-mono text-slate-500 mt-1">
-                  <span>2 Giriş</span>
-                  <span>8 Giriş</span>
+                  <span>2</span>
+                  <span>8</span>
                 </div>
               </div>
             )}
@@ -97,7 +100,7 @@ export const Inspector: React.FC<InspectorProps> = ({ onClose }) => {
             {comp.type === 'LED' && (
               <div>
                 <label className="text-[11px] font-medium text-slate-400 flex items-center gap-1 mb-2">
-                  <PaletteIcon className="w-3 h-3" /> LED Işık Rengi
+                  <PaletteIcon className="w-3 h-3" /> {t('ledColor')}
                 </label>
                 <div className="flex items-center gap-2">
                   {ledColors.map((color) => (
@@ -118,16 +121,16 @@ export const Inspector: React.FC<InspectorProps> = ({ onClose }) => {
             {comp.type === 'CLOCK' && (
               <div>
                 <label className="text-[11px] font-medium text-slate-400 mb-1.5 block">
-                  Saat Frekansı ({params.frequency ?? 1} Hz)
+                  {t('signalFrequency')} ({params.frequency ?? 1} Hz)
                 </label>
                 <select
                   value={params.frequency ?? 1}
                   onChange={(e) => updateComponentParams(selectedId!, { frequency: Number(e.target.value) })}
                   className="w-full bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none cursor-pointer"
                 >
-                  <option value={0.5}>0.5 Hz (Çok Yavaş)</option>
-                  <option value={1}>1 Hz (Standart 1sn)</option>
-                  <option value={2}>2 Hz (2x Hızlı)</option>
+                  <option value={0.5}>0.5 Hz</option>
+                  <option value={1}>1 Hz</option>
+                  <option value={2}>2 Hz</option>
                   <option value={5}>5 Hz</option>
                   <option value={10}>10 Hz</option>
                 </select>
@@ -142,7 +145,7 @@ export const Inspector: React.FC<InspectorProps> = ({ onClose }) => {
               className="w-full flex items-center justify-center gap-1.5 py-2 rounded-xl bg-rose-950/40 hover:bg-rose-900/60 border border-rose-800/50 text-rose-300 text-xs font-semibold transition-colors cursor-pointer"
             >
               <Trash2 className="w-3.5 h-3.5" />
-              <span>Elemanı Sil</span>
+              <span>{t('deleteComponent')}</span>
             </button>
           </div>
         </>
