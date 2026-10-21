@@ -1,4 +1,5 @@
 import { Wire, ComponentInstance, ComponentDef } from './types';
+import { getComponentPins } from '../components-lib/registry';
 
 export interface Net {
   id: string;
@@ -39,8 +40,8 @@ class UnionFind {
 }
 
 /**
- * Extracts electrical nets from components and wires using Union-Find.
- */
+  * Extracts electrical nets from components and wires using Union-Find.
+  */
 export function buildNetlist(
   components: ComponentInstance[],
   wires: Wire[],
@@ -53,7 +54,8 @@ export function buildNetlist(
   for (const comp of components) {
     const def = registry.get(comp.type);
     if (def) {
-      for (const pin of def.pins) {
+      const pins = getComponentPins(def, comp.params);
+      for (const pin of pins) {
         const pinKey = `${comp.id}:${pin.id}`;
         allPins.add(pinKey);
         uf.find(pinKey);

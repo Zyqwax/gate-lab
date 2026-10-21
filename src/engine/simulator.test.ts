@@ -202,4 +202,36 @@ describe('Logic Circuit Simulator Engine', () => {
     expect(res.pinValues['latch:q']).toBe(0);
     expect(res.pinValues['latch:qbar']).toBe(1);
   });
+
+  it('evaluates dynamic multi-input (4-input) AND gate correctly', () => {
+    const circuit: CircuitModel = {
+      version: 1,
+      mode: 'sandbox',
+      components: [
+        { id: 'sw0', type: 'SWITCH', x: 0, y: 0, params: { state: 1 } },
+        { id: 'sw1', type: 'SWITCH', x: 0, y: 40, params: { state: 1 } },
+        { id: 'sw2', type: 'SWITCH', x: 0, y: 80, params: { state: 1 } },
+        { id: 'sw3', type: 'SWITCH', x: 0, y: 120, params: { state: 0 } },
+        { id: 'and4', type: 'AND', x: 140, y: 60, params: { inputs: 4 } },
+      ],
+      wires: [
+        { id: 'w0', from: { comp: 'sw0', pin: 'out' }, to: { comp: 'and4', pin: 'in0' } },
+        { id: 'w1', from: { comp: 'sw1', pin: 'out' }, to: { comp: 'and4', pin: 'in1' } },
+        { id: 'w2', from: { comp: 'sw2', pin: 'out' }, to: { comp: 'and4', pin: 'in2' } },
+        { id: 'w3', from: { comp: 'sw3', pin: 'out' }, to: { comp: 'and4', pin: 'in3' } },
+      ],
+    };
+
+    // With in3 = 0, 4-input AND should output 0
+    let res = sim.evaluate(circuit);
+    expect(res.pinValues['and4:in2']).toBe(1);
+    expect(res.pinValues['and4:in3']).toBe(0);
+    expect(res.pinValues['and4:out']).toBe(0);
+
+    // With in3 = 1, all 4 inputs are 1 -> output 1
+    circuit.components[3].params.state = 1;
+    res = sim.evaluate(circuit);
+    expect(res.pinValues['and4:in3']).toBe(1);
+    expect(res.pinValues['and4:out']).toBe(1);
+  });
 });

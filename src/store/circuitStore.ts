@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { CircuitModel, ComponentInstance, Wire, SimulationResult, PinRef } from '../engine/types';
 import { defaultSimulator } from '../engine/simulator';
-import { getComponentDef } from '../components-lib/registry';
+import { getComponentDef, getComponentPins } from '../components-lib/registry';
 import { TEMPLATES } from '../templates/circuits';
 import { saveCircuit } from '../lib/circuitStorage';
 
@@ -262,10 +262,24 @@ export const useCircuitStore = create<CircuitState>((set, get) => {
         const components = state.components.map((c) =>
           c.id === id ? { ...c, params: { ...c.params, ...newParams } } : c
         );
-        const simResult = runSim(components, state.wires, state.simResult.componentStates);
+        const updatedComp = components.find((c) => c.id === id);
+        let wires = state.wires;
+        if (updatedComp) {
+          const def = getComponentDef(updatedComp.type);
+          if (def) {
+            const validPinIds = new Set(getComponentPins(def, updatedComp.params).map((p) => p.id));
+            wires = state.wires.filter((w) => {
+              if (w.from.comp === id && !validPinIds.has(w.from.pin)) return false;
+              if (w.to.comp === id && !validPinIds.has(w.to.pin)) return false;
+              return true;
+            });
+          }
+        }
+        const simResult = runSim(components, wires, state.simResult.componentStates);
         return {
           ...historyUpdate,
           components,
+          wires,
           simResult,
           isSaved: false,
         };

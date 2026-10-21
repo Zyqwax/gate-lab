@@ -1,7 +1,7 @@
 import { CircuitModel, SimulationResult, ComponentDef } from './types';
 import { Signal, resolveSignals } from './signal';
 import { buildNetlist, Netlist } from './netlist';
-import { REGISTRY } from '../components-lib/registry';
+import { REGISTRY, getComponentPins } from '../components-lib/registry';
 
 export interface SimulatorOptions {
   maxIterations?: number;
@@ -57,9 +57,11 @@ export class Simulator {
         const def = this.registry.get(comp.type);
         if (!def) continue;
 
+        const pins = getComponentPins(def, comp.params);
+
         // Gather current input pin values for this component
         const compInputs: Record<string, Signal> = {};
-        for (const pin of def.pins) {
+        for (const pin of pins) {
           if (pin.dir === 'in' || pin.dir === 'io') {
             const key = `${comp.id}:${pin.id}`;
             compInputs[pin.id] = pinInputs.get(key) ?? 'Z';
@@ -93,7 +95,7 @@ export class Simulator {
           const comp = circuit.components.find((c) => c.id === compId);
           if (!comp) continue;
           const def = this.registry.get(comp.type);
-          const pinDef = def?.pins.find((p) => p.id === pinId);
+          const pinDef = def ? getComponentPins(def, comp.params).find((p) => p.id === pinId) : undefined;
 
           if (pinDef && (pinDef.dir === 'out' || pinDef.dir === 'io')) {
             const outSig = pinOutputs.get(pinKey) ?? 'Z';
@@ -115,7 +117,7 @@ export class Simulator {
           const comp = circuit.components.find((c) => c.id === compId);
           if (!comp) continue;
           const def = this.registry.get(comp.type);
-          const pinDef = def?.pins.find((p) => p.id === pinId);
+          const pinDef = def ? getComponentPins(def, comp.params).find((p) => p.id === pinId) : undefined;
 
           if (pinDef && (pinDef.dir === 'in' || pinDef.dir === 'io')) {
             const oldInSig = pinInputs.get(pinKey);
@@ -137,7 +139,8 @@ export class Simulator {
     for (const comp of circuit.components) {
       const def = this.registry.get(comp.type);
       if (!def) continue;
-      for (const p of def.pins) {
+      const pins = getComponentPins(def, comp.params);
+      for (const p of pins) {
         const key = `${comp.id}:${p.id}`;
         if (p.dir === 'out') {
           finalPinValues[key] = pinOutputs.get(key) ?? 'Z';

@@ -75,17 +75,17 @@ export const Inspector: React.FC<InspectorProps> = ({ onClose }) => {
             </div>
 
             {/* Dynamic Inputs for Gates (2 to 8) */}
-            {def?.category === 'gate' && params.inputs !== undefined && (
+            {def?.category === 'gate' && (params.inputs !== undefined || rawDef?.defaultParams?.inputs !== undefined) && (
               <div>
                 <label className="text-[11px] font-medium text-slate-400 mb-1.5 block">
-                  {t('inputCount')}: <span className="font-mono text-emerald-400 font-bold">{params.inputs || 2}</span>
+                  {t('inputCount')}: <span className="font-mono text-emerald-400 font-bold">{params.inputs ?? rawDef?.defaultParams?.inputs ?? 2}</span>
                 </label>
                 <input
                   type="range"
                   min={2}
                   max={8}
                   step={1}
-                  value={params.inputs || 2}
+                  value={params.inputs ?? rawDef?.defaultParams?.inputs ?? 2}
                   onChange={(e) => updateComponentParams(selectedId!, { inputs: Number(e.target.value) })}
                   className="w-full accent-emerald-500 cursor-pointer"
                 />

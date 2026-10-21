@@ -1,4 +1,4 @@
-import { ComponentDef } from '../engine/types';
+import { ComponentDef, PinDef } from '../engine/types';
 import { Signal, signalToBoolean, booleanToSignal } from '../engine/signal';
 import { Locale } from '../i18n/translations';
 
@@ -496,6 +496,33 @@ export const REGISTRY = new Map<string, ComponentDef>(
 
 export function getComponentDef(type: string): ComponentDef | undefined {
   return REGISTRY.get(type);
+}
+
+/**
+ * Resolves the effective pins for a component instance, supporting dynamic input counts (2..8) for logic gates.
+ */
+export function getComponentPins(
+  def: ComponentDef,
+  params?: Record<string, any>
+): PinDef[] {
+  const rawInputs = params?.inputs ?? def.defaultParams?.inputs;
+  if (def.category === 'gate' && typeof rawInputs === 'number') {
+    const numInputs = Math.max(2, Math.min(8, Math.round(rawInputs)));
+    const inPins: PinDef[] = [];
+    for (let i = 0; i < numInputs; i++) {
+      const label = String.fromCharCode(65 + i); // A, B, C, D, E, F, G, H
+      inPins.push({
+        id: `in${i}`,
+        dir: 'in',
+        label,
+        description: `Input ${label}`,
+        descriptionI18n: { en: `Input ${label}`, tr: `${label} Girişi` },
+      });
+    }
+    const outPins = def.pins.filter((p) => p.dir !== 'in');
+    return [...inPins, ...outPins];
+  }
+  return def.pins;
 }
 
 /**

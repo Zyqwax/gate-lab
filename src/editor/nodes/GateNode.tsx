@@ -1,21 +1,28 @@
-import React from 'react';
-import { Handle, Position, NodeProps } from '@xyflow/react';
+import React, { useEffect } from 'react';
+import { Handle, Position, NodeProps, useUpdateNodeInternals } from '@xyflow/react';
 import { useCircuitStore } from '../../store/circuitStore';
-import { getComponentDef } from '../../components-lib/registry';
+import { getComponentDef, getComponentPins } from '../../components-lib/registry';
 import { GateSvg } from './GateSvg';
 import { getSignalColor } from '../../engine/signal';
 
 export const GateNode: React.FC<NodeProps> = ({ id, data, selected }) => {
   const compType = (data?.type as string) || 'AND';
-  const label = (data?.params as any)?.label || compType;
+  const params = (data?.params as Record<string, any>) || {};
+  const label = params.label || compType;
   const def = getComponentDef(compType);
   const pinValues = useCircuitStore((state) => state.simResult.pinValues);
   const removeComponent = useCircuitStore((state) => state.removeComponent);
+  const updateNodeInternals = useUpdateNodeInternals();
+
+  const pins = def ? getComponentPins(def, params) : [];
+  const inPins = pins.filter((p) => p.dir === 'in');
+  const outPins = pins.filter((p) => p.dir === 'out');
+
+  useEffect(() => {
+    updateNodeInternals(id);
+  }, [id, inPins.length, updateNodeInternals]);
 
   if (!def) return null;
-
-  const inPins = def.pins.filter((p) => p.dir === 'in');
-  const outPins = def.pins.filter((p) => p.dir === 'out');
 
   return (
     <div
@@ -36,7 +43,10 @@ export const GateNode: React.FC<NodeProps> = ({ id, data, selected }) => {
       </div>
 
       {/* Center Gate Visual */}
-      <div className="flex items-center justify-center py-1">
+      <div
+        className="flex items-center justify-center py-1"
+        style={{ minHeight: `${Math.max(48, inPins.length * 20)}px` }}
+      >
         <GateSvg type={compType} className="w-12 h-10 drop-shadow-md" />
       </div>
 
