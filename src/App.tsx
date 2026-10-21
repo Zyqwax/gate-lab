@@ -59,10 +59,10 @@ export const App: React.FC = () => {
         {/* Left Component Palette with Smooth Collapse */}
         <div
           className={`transition-all duration-200 ease-in-out overflow-hidden flex z-10 ${
-            isSidebarOpen ? 'w-72' : 'w-0'
+            isSidebarOpen ? 'w-56' : 'w-0'
           }`}
         >
-          <div className="w-72 h-full">
+          <div className="w-56 h-full">
             <Palette />
           </div>
         </div>

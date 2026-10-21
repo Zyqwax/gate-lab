@@ -3,6 +3,7 @@
 import React, { useRef, useState, useEffect } from "react";
 import Link from "next/link";
 import { useCircuitStore } from "../store/circuitStore";
+import { confirmDialog, alertDialog } from "../store/dialogStore";
 import { TEMPLATES } from "../templates/circuits";
 import {
   Play,
@@ -140,12 +141,16 @@ export const Toolbar: React.FC<ToolbarProps> = ({
     const file = e.target.files?.[0];
     if (!file) return;
     const reader = new FileReader();
-    reader.onload = (event) => {
+    reader.onload = async (event) => {
       const content = event.target?.result as string;
       if (content) {
         const ok = importJSON(content);
         if (!ok) {
-          alert("Hata: Geçersiz devre JSON dosyası.");
+          await alertDialog({
+            title: "Dosya Yükleme Hatası",
+            message: "Seçilen dosya geçerli bir GateLab devre JSON biçiminde değil.",
+            type: "error",
+          });
         } else {
           const cleanName = file.name.replace(/\.json$/i, "").replace(/[-_]/g, " ");
           setProjectName(cleanName);
@@ -167,9 +172,9 @@ export const Toolbar: React.FC<ToolbarProps> = ({
   };
 
   return (
-    <header className="h-10 sm:h-12 bg-slate-900/95 border-b border-slate-800 px-3.5 flex items-center justify-between select-none z-20 backdrop-blur-md shadow-lg gap-2">
+    <header className="h-10 sm:h-12 bg-slate-900/95 border-b border-slate-800 px-3.5 flex items-center justify-between select-none z-20 backdrop-blur-md shadow-lg gap-2 relative">
       {/* 1. LEFT SECTION: Navigation, Sidebar Toggle & Project Name */}
-      <div className="flex items-center gap-1.5 min-w-0 shrink">
+      <div className="flex items-center gap-1.5 shrink-0 z-10">
         {/* Back to Dashboard */}
         <Link
           href="/dashboard"
@@ -192,8 +197,8 @@ export const Toolbar: React.FC<ToolbarProps> = ({
           {isSidebarOpen ? <PanelLeftClose className="w-4 h-4" /> : <PanelLeft className="w-4 h-4" />}
         </button>
 
-        {/* Editable Project Name */}
-        <div className="flex items-center gap-1 max-w-[140px] sm:max-w-[200px] truncate ml-1">
+        {/* Editable Project Name (Fixed width & height to prevent any button shift) */}
+        <div className="w-36 sm:w-48 shrink-0">
           {isEditingName ? (
             <input
               type="text"
@@ -208,16 +213,16 @@ export const Toolbar: React.FC<ToolbarProps> = ({
                 }
               }}
               autoFocus
-              className="bg-slate-950 border border-emerald-500 rounded px-2 py-0.5 text-xs text-white font-medium focus:outline-none w-full"
+              className="w-full h-7 px-2 rounded-lg bg-slate-950 border border-emerald-500 text-xs font-semibold text-white focus:outline-none focus:ring-1 focus:ring-emerald-500/50 shadow-inner"
             />
           ) : (
             <button
               onClick={() => setIsEditingName(true)}
-              className="text-xs font-semibold text-slate-200 hover:text-emerald-400 transition-colors flex items-center gap-1 group cursor-pointer truncate"
+              className="w-full h-7 px-2 rounded-lg bg-slate-800/40 hover:bg-slate-800 border border-transparent hover:border-slate-700/80 text-xs font-semibold text-slate-200 hover:text-white transition-all flex items-center justify-between group cursor-pointer text-left"
               title="İsmi değiştirmek için tıklayın"
             >
               <span className="truncate">{currentProjectName}</span>
-              <Pencil className="w-2.5 h-2.5 text-slate-500 opacity-0 group-hover:opacity-100 transition-opacity shrink-0" />
+              <Pencil className="w-2.5 h-2.5 text-slate-500 opacity-60 group-hover:opacity-100 transition-opacity shrink-0 ml-1" />
             </button>
           )}
         </div>
@@ -226,7 +231,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
         {(!isSaved || justSaved) && (
           <button
             onClick={handleSave}
-            className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold transition-all shadow-md cursor-pointer shrink-0 animate-in fade-in duration-150 ${
+            className={`flex items-center gap-1 p-1.5 rounded-lg text-xs font-bold transition-all shadow-md cursor-pointer shrink-0 animate-in fade-in duration-150 ${
               justSaved
                 ? "bg-emerald-950 text-emerald-400 border border-emerald-800/80"
                 : "bg-emerald-600 hover:bg-emerald-500 text-slate-950 shadow-emerald-600/30"
@@ -236,12 +241,10 @@ export const Toolbar: React.FC<ToolbarProps> = ({
             {justSaved ? (
               <>
                 <Check className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">Kaydedildi</span>
               </>
             ) : (
               <>
                 <Save className="w-3.5 h-3.5" />
-                <span>Kaydet</span>
               </>
             )}
           </button>
@@ -249,7 +252,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
       </div>
 
       {/* 2. CENTER SECTION: Simulation Core Controls (Clean & Focused) */}
-      <div className="flex items-center gap-1.5 shrink-0">
+      <div className="lg:absolute lg:left-1/2 lg:-translate-x-1/2 flex items-center gap-1.5 shrink-0 z-10">
         {/* Play/Pause Button - Primary Action */}
         <button
           onClick={togglePlay}
@@ -303,7 +306,7 @@ export const Toolbar: React.FC<ToolbarProps> = ({
       </div>
 
       {/* 3. RIGHT SECTION: Truth Table, Inspector Toggle & Overflow "..." Menu */}
-      <div className="flex items-center gap-1.5 shrink-0">
+      <div className="flex items-center gap-1.5 shrink-0 z-10">
         {/* CONDITIONAL RENDER: Undo button ONLY when past history exists */}
         {historyPast.length > 0 && (
           <button
@@ -444,10 +447,17 @@ export const Toolbar: React.FC<ToolbarProps> = ({
               <div className="my-1 border-t border-slate-800" />
 
               <button
-                onClick={() => {
-                  if (confirm("Devredeki tüm parçalar temizlensin mi?")) {
+                onClick={async () => {
+                  setIsMoreMenuOpen(false);
+                  const ok = await confirmDialog({
+                    title: "Tuvali Temizle",
+                    message: "Devredeki tüm parçalar ve bağlantılar silinecektir. Bu işlemi yapmak istediğinizden emin misiniz?",
+                    confirmText: "Tümünü Temizle",
+                    cancelText: "Vazgeç",
+                    type: "danger",
+                  });
+                  if (ok) {
                     clearCircuit();
-                    setIsMoreMenuOpen(false);
                   }
                 }}
                 className="w-full flex items-center gap-2 px-3 py-2 hover:bg-rose-950/50 text-rose-400 hover:text-rose-300 transition-colors text-left cursor-pointer"

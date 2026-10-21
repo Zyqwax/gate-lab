@@ -8,6 +8,7 @@ import {
   SavedCircuit,
   createCircuitFromTemplate,
 } from '@/lib/circuitStorage';
+import { confirmDialog } from '@/store/dialogStore';
 import {
   Plus,
   Layers,
@@ -35,8 +36,15 @@ export default function DashboardPage() {
     setIsLoaded(true);
   }, []);
 
-  const handleDelete = (id: string, name: string) => {
-    if (confirm(`"${name}" devresi silinsin mi? Bu işlem geri alınamaz.`)) {
+  const handleDelete = async (id: string, name: string) => {
+    const ok = await confirmDialog({
+      title: 'Devreyi Sil',
+      message: `"${name}" devresi kalıcı olarak silinecektir. Bu işlem geri alınamaz.`,
+      confirmText: 'Devreyi Sil',
+      cancelText: 'Vazgeç',
+      type: 'danger',
+    });
+    if (ok) {
       deleteCircuit(id);
       refreshList();
     }

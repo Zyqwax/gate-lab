@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import './globals.css';
+import { GlobalDialog } from '../components/ui/GlobalDialog';
 
 export const metadata: Metadata = {
   title: 'GateLab — Logic Circuit Playground',
@@ -18,6 +19,7 @@ export default function RootLayout({
     <html lang="tr" className="dark">
       <body className="min-h-screen bg-slate-950 text-slate-100 antialiased">
         {children}
+        <GlobalDialog />
       </body>
     </html>
   );
