@@ -8,16 +8,25 @@ import { Inspector } from './editor/Inspector';
 import { TruthTableModal } from './panels/TruthTableModal';
 import { WelcomeModal } from './panels/WelcomeModal';
 import { useCircuitStore } from './store/circuitStore';
-import { ChevronRight } from 'lucide-react';
+import { ChevronRight, ChevronLeft, Sliders } from 'lucide-react';
 
 export const App: React.FC = () => {
   const [isTruthTableOpen, setIsTruthTableOpen] = useState(false);
   const [isWelcomeOpen, setIsWelcomeOpen] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [isInspectorOpen, setIsInspectorOpen] = useState(true);
 
   const isRunning = useCircuitStore((state) => state.isRunning);
   const tickRateHz = useCircuitStore((state) => state.tickRateHz);
   const step = useCircuitStore((state) => state.step);
+  const selectedComponentId = useCircuitStore((state) => state.selectedComponentId);
+
+  // Auto-open Inspector when a component is clicked/selected if it was closed
+  useEffect(() => {
+    if (selectedComponentId) {
+      setIsInspectorOpen(true);
+    }
+  }, [selectedComponentId]);
 
   // Clock & simulation tick loop (only runs if isRunning is true)
   useEffect(() => {
@@ -32,13 +41,17 @@ export const App: React.FC = () => {
   }, [isRunning, tickRateHz, step]);
 
   return (
-    <div className="flex flex-col w-screen h-screen bg-slate-950 text-slate-100 overflow-hidden font-sans">
+    <div
+      onContextMenu={(e) => e.preventDefault()}
+      className="flex flex-col w-screen h-screen bg-slate-950 text-slate-100 overflow-hidden font-sans"
+    >
       {/* Top Application Toolbar */}
       <Toolbar
         onOpenTruthTable={() => setIsTruthTableOpen(true)}
-        onOpenWelcome={() => setIsWelcomeOpen(true)}
         isSidebarOpen={isSidebarOpen}
         onToggleSidebar={() => setIsSidebarOpen((prev) => !prev)}
+        isInspectorOpen={isInspectorOpen}
+        onToggleInspector={() => setIsInspectorOpen((prev) => !prev)}
       />
 
       {/* Main Workspace Body */}
@@ -54,11 +67,11 @@ export const App: React.FC = () => {
           </div>
         </div>
 
-        {/* Small floating pill to expand sidebar when closed */}
+        {/* Small floating pill to expand left sidebar when closed */}
         {!isSidebarOpen && (
           <button
             onClick={() => setIsSidebarOpen(true)}
-            className="absolute left-2 top-4 z-20 px-2 py-1.5 rounded-lg bg-slate-900/90 border border-slate-700/80 text-slate-300 hover:text-emerald-400 hover:border-emerald-500/50 shadow-xl backdrop-blur-md text-xs font-medium flex items-center gap-1 transition-all cursor-pointer"
+            className="absolute left-2 top-3 z-20 px-2.5 py-1.5 rounded-xl bg-slate-900/90 border border-slate-700/80 text-slate-300 hover:text-emerald-400 hover:border-emerald-500/50 shadow-xl backdrop-blur-md text-xs font-semibold flex items-center gap-1 transition-all cursor-pointer"
             title="Parça Panelini Aç"
           >
             <span>Parçalar</span>
@@ -71,8 +84,29 @@ export const App: React.FC = () => {
           <Canvas />
         </main>
 
-        {/* Right Element Inspector */}
-        <Inspector />
+        {/* Small floating pill to expand right inspector when closed */}
+        {!isInspectorOpen && (
+          <button
+            onClick={() => setIsInspectorOpen(true)}
+            className="absolute right-2 top-3 z-20 px-2.5 py-1.5 rounded-xl bg-slate-900/90 border border-slate-700/80 text-slate-300 hover:text-emerald-400 hover:border-emerald-500/50 shadow-xl backdrop-blur-md text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer"
+            title="Özellikler Panelini Aç"
+          >
+            <Sliders className="w-3.5 h-3.5 text-emerald-400" />
+            <span className="hidden sm:inline">Özellikler</span>
+            <ChevronLeft className="w-3.5 h-3.5" />
+          </button>
+        )}
+
+        {/* Right Element Inspector with Smooth Collapse */}
+        <div
+          className={`transition-all duration-200 ease-in-out overflow-hidden flex z-10 ${
+            isInspectorOpen ? 'w-72' : 'w-0'
+          }`}
+        >
+          <div className="w-72 h-full">
+            <Inspector onClose={() => setIsInspectorOpen(false)} />
+          </div>
+        </div>
       </div>
 
       {/* Modals */}

@@ -27,12 +27,18 @@ interface CircuitState {
   currentProjectName: string;
   isSaved: boolean;
 
+  // UI Settings
+  showMinimap: boolean;
+  toggleMinimap: () => void;
+
   // Actions
   setProject: (id: string, name: string, model: CircuitModel) => void;
   setProjectName: (name: string) => void;
   saveCurrentProject: () => boolean;
 
   addComponent: (type: string, pos: { x: number; y: number }) => void;
+  duplicateComponent: (id: string) => string | null;
+  disconnectComponent: (id: string) => void;
   updateComponentPosition: (id: string, pos: { x: number; y: number }) => void;
   updateComponentParams: (id: string, params: Record<string, any>) => void;
   removeComponent: (id: string) => void;
@@ -108,6 +114,8 @@ export const useCircuitStore = create<CircuitState>((set, get) => {
     currentProjectId: null,
     currentProjectName: 'İsimsiz Devre Projesi',
     isSaved: true,
+    showMinimap: true,
+    toggleMinimap: () => set((state) => ({ showMinimap: !state.showMinimap })),
 
     setProject: (id, name, model) => {
       const simResult = runSim(model.components, model.wires);
@@ -181,6 +189,52 @@ export const useCircuitStore = create<CircuitState>((set, get) => {
           components,
           simResult,
           selectedComponentId: newId,
+          isSaved: false,
+        };
+      });
+    },
+
+    duplicateComponent: (id) => {
+      const comp = get().components.find((c) => c.id === id);
+      if (!comp) return null;
+
+      const newId = `comp_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
+      const duplicatedComp: ComponentInstance = {
+        id: newId,
+        type: comp.type,
+        x: comp.x + 40,
+        y: comp.y + 40,
+        params: JSON.parse(JSON.stringify(comp.params || {})),
+        state: comp.state ? JSON.parse(JSON.stringify(comp.state)) : {},
+      };
+
+      set((state) => {
+        const historyUpdate = pushHistory(state);
+        const components = [...state.components, duplicatedComp];
+        const simResult = runSim(components, state.wires, state.simResult.componentStates);
+        return {
+          ...historyUpdate,
+          components,
+          simResult,
+          selectedComponentId: newId,
+          isSaved: false,
+        };
+      });
+
+      return newId;
+    },
+
+    disconnectComponent: (id) => {
+      set((state) => {
+        const historyUpdate = pushHistory(state);
+        const wires = state.wires.filter(
+          (w) => w.from.comp !== id && w.to.comp !== id
+        );
+        const simResult = runSim(state.components, wires, state.simResult.componentStates);
+        return {
+          ...historyUpdate,
+          wires,
+          simResult,
           isSaved: false,
         };
       });

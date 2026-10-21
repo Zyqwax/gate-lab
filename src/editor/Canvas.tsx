@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useCallback, useMemo, useRef } from 'react';
+import React, { useCallback, useMemo, useRef, useState, useEffect } from 'react';
 import {
   ReactFlow,
   Background,
@@ -22,6 +22,9 @@ import { DisplayNode } from './nodes/DisplayNode';
 import { BlockNode } from './nodes/BlockNode';
 import { SignalEdge } from './edges/SignalEdge';
 import { getComponentDef } from '../components-lib/registry';
+import { ContextMenu, ContextMenuState } from './context-menu/ContextMenu';
+import { ComponentInfoModal } from './modals/ComponentInfoModal';
+import { ComponentDef } from '../engine/types';
 
 const nodeTypes = {
   gate: GateNode,
@@ -36,19 +39,46 @@ const edgeTypes = {
 
 const CanvasInner: React.FC = () => {
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
-  const { screenToFlowPosition } = useReactFlow();
+  const { screenToFlowPosition, fitView } = useReactFlow();
 
   const components = useCircuitStore((state) => state.components);
   const wires = useCircuitStore((state) => state.wires);
   const selectedComponentId = useCircuitStore((state) => state.selectedComponentId);
   const selectedWireId = useCircuitStore((state) => state.selectedWireId);
+  const wireValues = useCircuitStore((state) => state.simResult.wireValues);
+  const showMinimap = useCircuitStore((state) => state.showMinimap);
 
   const addComponent = useCircuitStore((state) => state.addComponent);
+  const duplicateComponent = useCircuitStore((state) => state.duplicateComponent);
+  const disconnectComponent = useCircuitStore((state) => state.disconnectComponent);
   const updateComponentPosition = useCircuitStore((state) => state.updateComponentPosition);
+  const removeComponent = useCircuitStore((state) => state.removeComponent);
   const addWire = useCircuitStore((state) => state.addWire);
   const removeWire = useCircuitStore((state) => state.removeWire);
   const selectComponent = useCircuitStore((state) => state.selectComponent);
   const selectWire = useCircuitStore((state) => state.selectWire);
+
+  // Context Menu state
+  const [contextMenu, setContextMenu] = useState<ContextMenuState>({
+    isOpen: false,
+    x: 0,
+    y: 0,
+    targetType: 'pane',
+  });
+
+  // Component Info Modal state
+  const [infoModalDef, setInfoModalDef] = useState<ComponentDef | null>(null);
+
+  // Close context menu on global click
+  useEffect(() => {
+    const handleGlobalClick = () => {
+      if (contextMenu.isOpen) {
+        setContextMenu((prev) => ({ ...prev, isOpen: false }));
+      }
+    };
+    window.addEventListener('click', handleGlobalClick);
+    return () => window.removeEventListener('click', handleGlobalClick);
+  }, [contextMenu.isOpen]);
 
   // Convert components to ReactFlow Nodes
   const nodes: Node[] = useMemo(() => {
@@ -125,8 +155,73 @@ const CanvasInner: React.FC = () => {
     [screenToFlowPosition, addComponent]
   );
 
+
+  // Node Context Menu handler
+  const onNodeContextMenu = useCallback(
+    (event: React.MouseEvent | MouseEvent, node: Node) => {
+      event.preventDefault();
+      event.stopPropagation();
+      selectComponent(node.id);
+      setContextMenu({
+        isOpen: true,
+        x: event.clientX,
+        y: event.clientY,
+        targetType: 'node',
+        targetId: node.id,
+        data: node.data,
+      });
+    },
+    [selectComponent]
+  );
+
+  // Edge Context Menu handler
+  const onEdgeContextMenu = useCallback(
+    (event: React.MouseEvent | MouseEvent, edge: Edge) => {
+      event.preventDefault();
+      event.stopPropagation();
+      selectWire(edge.id);
+      const signal = wireValues[edge.id] ?? 'Z';
+      setContextMenu({
+        isOpen: true,
+        x: event.clientX,
+        y: event.clientY,
+        targetType: 'edge',
+        targetId: edge.id,
+        data: { signal },
+      });
+    },
+    [selectWire, wireValues]
+  );
+
+  // Canvas Empty Pane Context Menu handler
+  const onPaneContextMenu = useCallback((event: React.MouseEvent | MouseEvent) => {
+    event.preventDefault();
+    setContextMenu({
+      isOpen: true,
+      x: event.clientX,
+      y: event.clientY,
+      targetType: 'pane',
+    });
+  }, []);
+
+  // Quick add from pane context menu at right click position
+  const handleQuickAdd = useCallback(
+    (type: string) => {
+      const position = screenToFlowPosition({
+        x: contextMenu.x,
+        y: contextMenu.y,
+      });
+      addComponent(type, position);
+    },
+    [contextMenu.x, contextMenu.y, screenToFlowPosition, addComponent]
+  );
+
   return (
-    <div className="w-full h-full relative" ref={reactFlowWrapper}>
+    <div
+      className="w-full h-full relative"
+      ref={reactFlowWrapper}
+      onContextMenu={(e) => e.preventDefault()} // Disable default browser context menu
+    >
       <ReactFlow
         nodes={nodes}
         edges={edges}
@@ -150,7 +245,11 @@ const CanvasInner: React.FC = () => {
         onPaneClick={() => {
           selectComponent(null);
           selectWire(null);
+          setContextMenu((prev) => ({ ...prev, isOpen: false }));
         }}
+        onNodeContextMenu={onNodeContextMenu}
+        onEdgeContextMenu={onEdgeContextMenu}
+        onPaneContextMenu={onPaneContextMenu}
         onDragOver={onDragOver}
         onDrop={onDrop}
         snapToGrid={true}
@@ -162,15 +261,41 @@ const CanvasInner: React.FC = () => {
       >
         <Background variant={BackgroundVariant.Dots} gap={20} size={1.5} color="#334155" />
         <Controls className="!bg-slate-900 !border-slate-800 !fill-slate-300 [&>button]:!border-slate-800 [&>button]:!bg-slate-900 [&>button:hover]:!bg-slate-800" />
-        <MiniMap
-          nodeStrokeColor="#475569"
-          nodeColor="#1e293b"
-          maskColor="rgba(2, 6, 23, 0.7)"
-          className="!bg-slate-950 !border !border-slate-800 !rounded-xl overflow-hidden shadow-2xl"
-          zoomable
-          pannable
-        />
+        {showMinimap && (
+          <MiniMap
+            nodeStrokeColor="#475569"
+            nodeColor="#1e293b"
+            maskColor="rgba(2, 6, 23, 0.7)"
+            className="!bg-slate-950 !border !border-slate-800 !rounded-xl overflow-hidden shadow-2xl"
+            zoomable
+            pannable
+          />
+        )}
       </ReactFlow>
+
+      {/* Custom Context Menu */}
+      <ContextMenu
+        menu={contextMenu}
+        onClose={() => setContextMenu((prev) => ({ ...prev, isOpen: false }))}
+        onSelectProperties={(nodeId) => selectComponent(nodeId)}
+        onOpenInfo={(compType) => {
+          const def = getComponentDef(compType);
+          if (def) setInfoModalDef(def);
+        }}
+        onDuplicateNode={(nodeId) => duplicateComponent(nodeId)}
+        onDisconnectNode={(nodeId) => disconnectComponent(nodeId)}
+        onDeleteNode={(nodeId) => removeComponent(nodeId)}
+        onDeleteEdge={(edgeId) => removeWire(edgeId)}
+        onAddQuickComponent={handleQuickAdd}
+        onFitView={() => fitView({ duration: 400, padding: 0.2 })}
+      />
+
+      {/* Component Information & Specs Modal */}
+      <ComponentInfoModal
+        def={infoModalDef}
+        isOpen={!!infoModalDef}
+        onClose={() => setInfoModalDef(null)}
+      />
     </div>
   );
 };
