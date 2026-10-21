@@ -1,0 +1,60 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  }
+  code, pre, .font-mono {
+    font-family: 'JetBrains Mono', monospace;
+  }
+}
+
+/* Custom animated signal flow on wires */
+@keyframes dash {
+  from {
+    stroke-dashoffset: 28;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+/* React Flow customizations */
+.react-flow__handle {
+  transition: all 0.15s ease-in-out;
+  cursor: crosshair !important;
+}
+
+.react-flow__handle:hover {
+  transform: scale(1.35) !important;
+  box-shadow: 0 0 10px rgba(56, 189, 248, 0.8) !important;
+}
+
+.react-flow__edge-path {
+  cursor: pointer;
+}
+
+.react-flow__attribution {
+  display: none !important;
+}
+
+/* Scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #334155;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #475569;
+}
