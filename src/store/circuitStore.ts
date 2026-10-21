@@ -70,7 +70,7 @@ export const useCircuitStore = create<CircuitState>((set, get) => {
     return defaultSimulator.evaluate(model, prevStates);
   };
 
-  const initialSim = runSim(initialTemplate.circuit.components, initialTemplate.circuit.wires);
+  const initialSim = runSim([], []);
 
   const pushHistory = (state: CircuitState) => {
     const snapshot = {
@@ -84,11 +84,11 @@ export const useCircuitStore = create<CircuitState>((set, get) => {
   };
 
   return {
-    components: initialTemplate.circuit.components,
-    wires: initialTemplate.circuit.wires,
+    components: [],
+    wires: [],
     selectedComponentId: null,
     selectedWireId: null,
-    isRunning: true,
+    isRunning: false,
     tickRateHz: 2,
     stepCount: 0,
     simResult: initialSim,
