@@ -333,8 +333,17 @@ export const useCircuitStore = create<CircuitState>((set, get) => {
 
     importJSON: (jsonStr) => {
       try {
-        const parsed: CircuitModel = JSON.parse(jsonStr);
-        if (!parsed.components || !parsed.wires) return false;
+        let parsed = JSON.parse(jsonStr);
+
+        // Support both direct CircuitModel and wrapped template format
+        if (parsed.circuit) {
+          parsed = parsed.circuit;
+        }
+
+        if (!parsed || !Array.isArray(parsed.components) || !Array.isArray(parsed.wires)) {
+          console.error('Invalid circuit JSON: components or wires is not an array');
+          return false;
+        }
 
         const simResult = runSim(parsed.components, parsed.wires);
         set((state) => ({

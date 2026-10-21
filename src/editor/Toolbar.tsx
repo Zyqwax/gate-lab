@@ -96,8 +96,14 @@ export const Toolbar: React.FC<ToolbarProps> = ({
     reader.onload = (event) => {
       const content = event.target?.result as string;
       if (content) {
-        importJSON(content);
+        const ok = importJSON(content);
+        if (!ok) {
+          alert('Hata: Geçersiz devre JSON dosyası. Lütfen geçerli bir devre dosyası seçin.');
+        }
       }
+    };
+    reader.onerror = () => {
+      alert('Dosya okunurken bir hata oluştu.');
     };
     reader.readAsText(file);
     e.target.value = '';

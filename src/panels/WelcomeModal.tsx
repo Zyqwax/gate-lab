@@ -1,7 +1,7 @@
-import React from 'react';
+import React, { useRef, useState } from 'react';
 import { TEMPLATES, CircuitTemplate } from '../templates/circuits';
 import { useCircuitStore } from '../store/circuitStore';
-import { PlusCircle, Sparkles, FileUp, X, ArrowRight, Lock } from 'lucide-react';
+import { PlusCircle, Sparkles, FileUp, X, ArrowRight, AlertCircle, CheckCircle2 } from 'lucide-react';
 
 interface WelcomeModalProps {
   isOpen: boolean;
@@ -11,6 +11,10 @@ interface WelcomeModalProps {
 export const WelcomeModal: React.FC<WelcomeModalProps> = ({ isOpen, onClose }) => {
   const loadTemplate = useCircuitStore((state) => state.loadTemplate);
   const clearCircuit = useCircuitStore((state) => state.clearCircuit);
+  const importJSON = useCircuitStore((state) => state.importJSON);
+
+  const [importError, setImportError] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   if (!isOpen) return null;
 
@@ -22,6 +26,40 @@ export const WelcomeModal: React.FC<WelcomeModalProps> = ({ isOpen, onClose }) =
   const handleSelectTemplate = (template: CircuitTemplate) => {
     loadTemplate(template.id);
     onClose();
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setImportError(null);
+    const reader = new FileReader();
+
+    reader.onload = (event) => {
+      try {
+        const content = event.target?.result as string;
+        if (!content) {
+          setImportError('Dosya içeriği boş.');
+          return;
+        }
+
+        const success = importJSON(content);
+        if (success) {
+          onClose();
+        } else {
+          setImportError('Geçersiz devre JSON formatı. "components" veya "wires" alanı eksik.');
+        }
+      } catch (err) {
+        setImportError('Dosya okunurken hata oluştu. Lütfen geçerli bir JSON dosyası seçin.');
+      }
+    };
+
+    reader.onerror = () => {
+      setImportError('Dosya okunamadı.');
+    };
+
+    reader.readAsText(file);
+    e.target.value = '';
   };
 
   return (
@@ -38,7 +76,7 @@ export const WelcomeModal: React.FC<WelcomeModalProps> = ({ isOpen, onClose }) =
                 GateLab Devre Editörüne Hoş Geldiniz
               </h2>
               <p className="text-xs text-slate-400 mt-0.5">
-                Nasıl başlamak istersiniz? Devrenizi sıfırdan kurabilir veya hazır şablonlardan birini inceleyebilirsiniz.
+                Nasıl başlamak istersiniz? Devrenizi sıfırdan kurabilir, hazır şablon açabilir veya bir JSON dosyası yükleyebilirsiniz.
               </p>
             </div>
           </div>
@@ -53,6 +91,13 @@ export const WelcomeModal: React.FC<WelcomeModalProps> = ({ isOpen, onClose }) =
 
         {/* Modal Body */}
         <div className="p-6 overflow-y-auto space-y-6">
+          {importError && (
+            <div className="p-3 rounded-lg bg-rose-950/50 border border-rose-800/80 text-rose-300 text-xs flex items-center gap-2">
+              <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
+              <span>{importError}</span>
+            </div>
+          )}
+
           {/* Section 1: Blank Canvas */}
           <div>
             <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">
@@ -122,33 +167,43 @@ export const WelcomeModal: React.FC<WelcomeModalProps> = ({ isOpen, onClose }) =
             </div>
           </div>
 
-          {/* Section 3: Import JSON (Disabled for later phase) */}
+          {/* Section 3: Import JSON (Fully functional!) */}
           <div>
             <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3 flex items-center gap-1.5">
-              <FileUp className="w-3.5 h-3.5 text-slate-500" />
-              <span>3. Kendi Dosyanı Yükle</span>
+              <FileUp className="w-3.5 h-3.5 text-sky-400" />
+              <span>3. Kendi Dosyanı Yükle (.json)</span>
             </h3>
-            <div
-              className="w-full text-left p-4 rounded-xl border border-slate-800/50 bg-slate-950/30 opacity-60 cursor-not-allowed flex items-center justify-between relative overflow-hidden"
-              title="Bu özellik Faz 2'de aktif edilecektir."
+
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".json"
+              onChange={handleFileChange}
+              className="hidden"
+            />
+
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              className="w-full text-left p-4 rounded-xl border border-slate-800/80 bg-slate-950/60 hover:bg-slate-850 hover:border-sky-500/50 hover:shadow-lg hover:shadow-sky-950/30 transition-all flex items-center justify-between group cursor-pointer"
             >
               <div className="flex items-center gap-4">
-                <div className="w-11 h-11 rounded-lg bg-slate-800/50 border border-slate-700/50 text-slate-500 flex items-center justify-center">
+                <div className="w-11 h-11 rounded-lg bg-sky-950/40 border border-sky-800/60 text-sky-400 flex items-center justify-center group-hover:scale-105 transition-transform">
                   <FileUp className="w-6 h-6" />
                 </div>
                 <div>
-                  <div className="text-sm font-semibold text-slate-300 flex items-center gap-2">
+                  <div className="text-sm font-semibold text-slate-100 group-hover:text-sky-300 flex items-center gap-2">
                     <span>JSON Devre Dosyası İçe Aktar</span>
-                    <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-slate-800 text-amber-400 border border-amber-900/40 flex items-center gap-1">
-                      <Lock className="w-2.5 h-2.5" /> Çok Yakında
+                    <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-950 text-emerald-400 border border-emerald-800/60 flex items-center gap-1">
+                      <CheckCircle2 className="w-2.5 h-2.5" /> Aktif
                     </span>
                   </div>
-                  <div className="text-xs text-slate-500 mt-0.5">
-                    Önceden dışa aktardığın bir .json devre şemasını doğrudan yükleyip devam et.
+                  <div className="text-xs text-slate-400 mt-0.5">
+                    Önceden indirdiğin bir GateLab JSON devre dosyasını seçerek tuvale yükle.
                   </div>
                 </div>
               </div>
-            </div>
+              <ArrowRight className="w-4 h-4 text-slate-500 group-hover:text-sky-400 group-hover:translate-x-1 transition-all" />
+            </button>
           </div>
         </div>
 
