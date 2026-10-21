@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useTranslation } from '@/i18n';
 import { getLocalizedTemplates } from '@/templates/circuits';
+import { BrandLogo, BrandIcon } from '@/components/ui/BrandLogo';
 import {
   Cpu,
   Zap,
@@ -32,12 +33,7 @@ export default function LandingPage() {
       <header className="relative z-10 border-b border-slate-800/80 bg-slate-950/70 backdrop-blur-xl">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2.5 group">
-            <div className="w-9 h-9 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 font-bold text-lg shadow-[0_0_20px_rgba(16,185,129,0.3)] group-hover:scale-105 transition-transform">
-              ⚡
-            </div>
-            <span className="font-bold text-lg tracking-tight text-white group-hover:text-emerald-300 transition-colors">
-              GateLab
-            </span>
+            <BrandLogo className="w-[120px] h-auto rounded-lg border border-slate-800/80" />
             <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-slate-800 border border-slate-700 text-slate-400">
               v0.2
             </span>
@@ -256,8 +252,9 @@ export default function LandingPage() {
       {/* Footer */}
       <footer className="relative z-10 border-t border-slate-800/80 py-8 text-center text-xs text-slate-500 bg-slate-950">
         <div className="max-w-6xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-2">
-            <span>⚡ GateLab — Logic Circuit Playground</span>
+          <div className="flex items-center gap-2.5">
+            <BrandIcon className="w-6 h-6" />
+            <span>GateLab — Logic Circuit Playground</span>
           </div>
           <div>React Flow · Next.js · TypeScript · Zustand</div>
         </div>

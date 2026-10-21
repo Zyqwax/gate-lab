@@ -20,6 +20,7 @@ import {
   Cpu,
 } from 'lucide-react';
 import { useTranslation } from '@/i18n';
+import { BrandIcon } from '@/components/ui/BrandLogo';
 
 export default function NewCircuitPage() {
   const router = useRouter();
@@ -79,6 +80,9 @@ export default function NewCircuitPage() {
       <header className="border-b border-slate-800/80 bg-slate-900/60 backdrop-blur-md sticky top-0 z-20">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
+            <Link href="/" title="GateLab">
+              <BrandIcon className="w-8 h-8 shrink-0" />
+            </Link>
             <Link
               href="/dashboard"
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-800/80 hover:bg-slate-700 text-slate-300 hover:text-white text-xs font-semibold border border-slate-700/60 transition-colors"

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useCircuitStore } from "../store/circuitStore";
 import { confirmDialog, alertDialog } from "../store/dialogStore";
 import { TEMPLATES } from "../templates/circuits";
+import { BrandIcon } from "../components/ui/BrandLogo";
 import {
   Play,
   Pause,
@@ -181,10 +182,11 @@ export const Toolbar: React.FC<ToolbarProps> = ({
         {/* Back to Dashboard */}
         <Link
           href="/dashboard"
-          className="p-1.5 rounded-lg bg-slate-800/80 hover:bg-slate-700 text-slate-300 hover:text-white transition-colors shrink-0"
+          className="flex items-center gap-1 pr-2 pl-1 py-1 rounded-lg bg-slate-800/80 hover:bg-slate-700 text-slate-300 hover:text-white transition-colors shrink-0"
           title={t("backToDashboard")}
         >
           <ChevronLeft className="w-4 h-4" />
+          <BrandIcon className="w-6 h-6 shrink-0" />
         </Link>
 
         {/* Toggle Left Sidebar */}

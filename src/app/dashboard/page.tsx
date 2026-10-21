@@ -10,6 +10,7 @@ import {
 } from '@/lib/circuitStorage';
 import { confirmDialog } from '@/store/dialogStore';
 import { useTranslation } from '@/i18n';
+import { BrandLogo } from '@/components/ui/BrandLogo';
 import {
   Plus,
   Layers,
@@ -75,12 +76,7 @@ export default function DashboardPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <Link href="/" className="flex items-center gap-2 group">
-              <div className="w-8 h-8 rounded-lg bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 font-bold shadow-[0_0_12px_rgba(16,185,129,0.3)]">
-                ⚡
-              </div>
-              <span className="font-bold text-base tracking-tight text-white group-hover:text-emerald-400 transition-colors">
-                GateLab
-              </span>
+              <BrandLogo className="w-[120px] h-auto rounded-lg border border-slate-800/80" />
             </Link>
             <span className="text-slate-700">/</span>
             <span className="text-xs font-semibold text-slate-300">{t('dashboard')}</span>

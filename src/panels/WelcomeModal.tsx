@@ -4,6 +4,7 @@ import React, { useRef, useState } from 'react';
 import { CircuitTemplate, getLocalizedTemplates } from '../templates/circuits';
 import { useCircuitStore } from '../store/circuitStore';
 import { useTranslation } from '../i18n';
+import { BrandIcon } from '../components/ui/BrandLogo';
 import { PlusCircle, Sparkles, FileUp, X, ArrowRight, AlertCircle, CheckCircle2 } from 'lucide-react';
 
 interface WelcomeModalProps {
@@ -74,9 +75,7 @@ export const WelcomeModal: React.FC<WelcomeModalProps> = ({ isOpen, onClose }) =
         {/* Header */}
         <div className="p-6 border-b border-slate-800 flex items-start justify-between bg-gradient-to-r from-slate-900 via-slate-900 to-slate-950">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 font-bold text-lg shadow-[0_0_16px_rgba(16,185,129,0.25)]">
-              ⚡
-            </div>
+            <BrandIcon className="w-10 h-10 shrink-0" />
             <div>
               <h2 className="text-lg font-bold text-white tracking-tight flex items-center gap-2">
                 {t('welcomeTitle')}
