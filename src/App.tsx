@@ -16,32 +16,28 @@ export const App: React.FC = () => {
   const { t } = useTranslation();
   const [isTruthTableOpen, setIsTruthTableOpen] = useState(false);
   const [isWelcomeOpen, setIsWelcomeOpen] = useState(false);
-  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
-  const [isInspectorOpen, setIsInspectorOpen] = useState(true);
+
+  // Read persisted UI preferences from circuit store
+  const isSidebarOpen = useCircuitStore((state) => state.isSidebarOpen);
+  const toggleSidebar = useCircuitStore((state) => state.toggleSidebar);
+  const setSidebarOpen = useCircuitStore((state) => state.setSidebarOpen);
+
+  const isInspectorOpen = useCircuitStore((state) => state.isInspectorOpen);
+  const toggleInspector = useCircuitStore((state) => state.toggleInspector);
+  const setInspectorOpen = useCircuitStore((state) => state.setInspectorOpen);
 
   const isRunning = useCircuitStore((state) => state.isRunning);
-  const tickRateHz = useCircuitStore((state) => state.tickRateHz);
-  const step = useCircuitStore((state) => state.step);
-  const selectedComponentId = useCircuitStore((state) => state.selectedComponentId);
 
-  // Auto-open Inspector when a component is clicked/selected if it was closed
-  useEffect(() => {
-    if (selectedComponentId) {
-      setIsInspectorOpen(true);
-    }
-  }, [selectedComponentId]);
-
-  // Clock & simulation tick loop (only runs if isRunning is true)
+  // Clock & simulation tick loop (runs at high resolution ~66Hz, each clock advances by its own Hz)
   useEffect(() => {
     if (!isRunning) return;
 
-    const intervalMs = Math.round(1000 / tickRateHz);
     const interval = setInterval(() => {
-      step();
-    }, intervalMs);
+      useCircuitStore.getState().tickSimulation(performance.now());
+    }, 15);
 
     return () => clearInterval(interval);
-  }, [isRunning, tickRateHz, step]);
+  }, [isRunning]);
 
   // Periodic Auto-Save: Automatically saves project to localStorage every 7 seconds when unsaved changes exist
   useEffect(() => {
@@ -75,9 +71,9 @@ export const App: React.FC = () => {
       <Toolbar
         onOpenTruthTable={() => setIsTruthTableOpen(true)}
         isSidebarOpen={isSidebarOpen}
-        onToggleSidebar={() => setIsSidebarOpen((prev) => !prev)}
+        onToggleSidebar={toggleSidebar}
         isInspectorOpen={isInspectorOpen}
-        onToggleInspector={() => setIsInspectorOpen((prev) => !prev)}
+        onToggleInspector={toggleInspector}
       />
 
       {/* Main Workspace Body with Shared ReactFlow Context */}
@@ -97,7 +93,7 @@ export const App: React.FC = () => {
         {/* Small floating pill to expand left sidebar when closed */}
         {!isSidebarOpen && (
           <button
-            onClick={() => setIsSidebarOpen(true)}
+            onClick={() => setSidebarOpen(true)}
             className="absolute left-2 top-3 z-20 px-2.5 py-1.5 rounded-xl bg-slate-900/90 border border-slate-700/80 text-slate-300 hover:text-emerald-400 hover:border-emerald-500/50 shadow-xl backdrop-blur-md text-xs font-semibold flex items-center gap-1 transition-all cursor-pointer"
             title={t("showSidebar")}
           >
@@ -114,7 +110,7 @@ export const App: React.FC = () => {
         {/* Small floating pill to expand right inspector when closed */}
         {!isInspectorOpen && (
           <button
-            onClick={() => setIsInspectorOpen(true)}
+            onClick={() => setInspectorOpen(true)}
             className="absolute right-2 top-3 z-20 px-2.5 py-1.5 rounded-xl bg-slate-900/90 border border-slate-700/80 text-slate-300 hover:text-emerald-400 hover:border-emerald-500/50 shadow-xl backdrop-blur-md text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer"
             title={t("openInspector")}
           >
@@ -131,7 +127,7 @@ export const App: React.FC = () => {
           }`}
         >
           <div className="w-72 h-full">
-            <Inspector onClose={() => setIsInspectorOpen(false)} />
+            <Inspector onClose={() => setInspectorOpen(false)} />
           </div>
         </div>
       </div>

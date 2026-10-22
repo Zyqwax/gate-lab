@@ -316,4 +316,156 @@ describe('Logic Circuit Simulator Engine', () => {
     expect(res.pinValues['dec2bin:out2']).toBe(1);
     expect(res.pinValues['dec2bin:out3']).toBe(0);
   });
+
+  it('runs user circuit test', () => {
+    const userCircuit: CircuitModel = {
+      version: 1,
+      mode: 'sandbox',
+      components: [
+        { id: 'fa0', type: 'FULL_ADDER_BLOCK', x: 180, y: 230, params: { label: 'Full Adder' }, state: {} },
+        { id: 'dff0', type: 'D_FLIP_FLOP', x: 855, y: 240, params: { label: 'D-FF' }, state: { q: 0, lastClk: 0 } },
+        { id: 'fa1', type: 'FULL_ADDER_BLOCK', x: 180, y: 360, params: { label: 'Full Adder' }, state: {} },
+        { id: 'fa2', type: 'FULL_ADDER_BLOCK', x: 180, y: 495, params: { label: 'Full Adder' }, state: {} },
+        { id: 'fa3', type: 'FULL_ADDER_BLOCK', x: 180, y: 630, params: { label: 'Full Adder' }, state: {} },
+        { id: 'dff1', type: 'D_FLIP_FLOP', x: 855, y: 375, params: { label: 'D-FF' }, state: { q: 0, lastClk: 0 } },
+        { id: 'dff2', type: 'D_FLIP_FLOP', x: 855, y: 510, params: { label: 'D-FF' }, state: { q: 0, lastClk: 0 } },
+        { id: 'dff3', type: 'D_FLIP_FLOP', x: 855, y: 645, params: { label: 'D-FF' }, state: { q: 0, lastClk: 0 } },
+        { id: 'buf', type: 'BUFFER', x: 480, y: 60, params: { label: 'BUF' }, state: {} },
+        { id: 'tri0', type: 'TRI_STATE', x: 510, y: 255, params: { label: 'TRI' }, state: {} },
+        { id: 'tri1', type: 'TRI_STATE', x: 510, y: 375, params: { label: 'TRI' }, state: {} },
+        { id: 'tri2', type: 'TRI_STATE', x: 510, y: 495, params: { label: 'TRI' }, state: {} },
+        { id: 'tri3', type: 'TRI_STATE', x: 510, y: 615, params: { label: 'TRI' }, state: {} },
+        { id: 'sw', type: 'SWITCH', x: 210, y: 90, params: { state: 1, label: 'Switch' }, state: {} },
+        { id: 'clk', type: 'CLOCK', x: 330, y: -10, params: { frequency: 1, label: 'Clock', high: false }, state: {} },
+        { id: 'dec10', type: 'DECIMAL_INPUT', x: -165, y: 75, params: { label: 'Dec Input', value: 10 }, state: {} },
+        { id: 'dec1', type: 'DECIMAL_INPUT', x: -165, y: 225, params: { label: 'Dec Input', value: 1 }, state: {} },
+        { id: 'led', type: 'LED', x: 1140, y: 270, params: { color: '#10b981', label: 'LED' }, state: { lit: false } }
+      ],
+      wires: [
+        { id: 'w1', from: { comp: 'fa0', pin: 'cout' }, to: { comp: 'fa1', pin: 'cin' } },
+        { id: 'w2', from: { comp: 'fa1', pin: 'cout' }, to: { comp: 'fa2', pin: 'cin' } },
+        { id: 'w3', from: { comp: 'fa2', pin: 'cout' }, to: { comp: 'fa3', pin: 'cin' } },
+        { id: 'w4', from: { comp: 'buf', pin: 'out' }, to: { comp: 'dff0', pin: 'clk' } },
+        { id: 'w5', from: { comp: 'buf', pin: 'out' }, to: { comp: 'dff1', pin: 'clk' } },
+        { id: 'w6', from: { comp: 'buf', pin: 'out' }, to: { comp: 'dff2', pin: 'clk' } },
+        { id: 'w7', from: { comp: 'buf', pin: 'out' }, to: { comp: 'dff3', pin: 'clk' } },
+        { id: 'w8', from: { comp: 'tri3', pin: 'out' }, to: { comp: 'dff3', pin: 'd' } },
+        { id: 'w9', from: { comp: 'tri2', pin: 'out' }, to: { comp: 'dff2', pin: 'd' } },
+        { id: 'w10', from: { comp: 'tri1', pin: 'out' }, to: { comp: 'dff1', pin: 'd' } },
+        { id: 'w11', from: { comp: 'tri0', pin: 'out' }, to: { comp: 'dff0', pin: 'd' } },
+        { id: 'w12', from: { comp: 'sw', pin: 'out' }, to: { comp: 'tri0', pin: 'enable' } },
+        { id: 'w13', from: { comp: 'sw', pin: 'out' }, to: { comp: 'tri1', pin: 'enable' } },
+        { id: 'w14', from: { comp: 'sw', pin: 'out' }, to: { comp: 'tri2', pin: 'enable' } },
+        { id: 'w15', from: { comp: 'sw', pin: 'out' }, to: { comp: 'tri3', pin: 'enable' } },
+        { id: 'w16', from: { comp: 'fa3', pin: 'sum' }, to: { comp: 'tri3', pin: 'in' } },
+        { id: 'w17', from: { comp: 'fa2', pin: 'sum' }, to: { comp: 'tri2', pin: 'in' } },
+        { id: 'w18', from: { comp: 'fa1', pin: 'sum' }, to: { comp: 'tri1', pin: 'in' } },
+        { id: 'w19', from: { comp: 'fa0', pin: 'sum' }, to: { comp: 'tri0', pin: 'in' } },
+        { id: 'w20', from: { comp: 'clk', pin: 'out' }, to: { comp: 'buf', pin: 'in' } },
+        { id: 'w21', from: { comp: 'dec10', pin: 'out0' }, to: { comp: 'fa0', pin: 'a' } },
+        { id: 'w22', from: { comp: 'dec10', pin: 'out1' }, to: { comp: 'fa1', pin: 'a' } },
+        { id: 'w23', from: { comp: 'dec10', pin: 'out2' }, to: { comp: 'fa2', pin: 'a' } },
+        { id: 'w24', from: { comp: 'dec10', pin: 'out3' }, to: { comp: 'fa3', pin: 'a' } },
+        { id: 'w25', from: { comp: 'dec1', pin: 'out0' }, to: { comp: 'fa0', pin: 'b' } },
+        { id: 'w26', from: { comp: 'dec1', pin: 'out1' }, to: { comp: 'fa1', pin: 'b' } },
+        { id: 'w27', from: { comp: 'dec1', pin: 'out2' }, to: { comp: 'fa2', pin: 'b' } },
+        { id: 'w28', from: { comp: 'dec1', pin: 'out3' }, to: { comp: 'fa3', pin: 'b' } },
+        { id: 'w29', from: { comp: 'dff0', pin: 'q' }, to: { comp: 'led', pin: 'in' } }
+      ]
+    };
+
+    // Step 0: Initial evaluation (clk is 0)
+    let res = sim.evaluate(userCircuit);
+    expect(res.pinValues['fa0:sum']).toBe(1);
+    expect(res.pinValues['tri0:out']).toBe(1);
+    expect(res.pinValues['dff0:d']).toBe(1);
+    expect(res.pinValues['dff0:clk']).toBe(0);
+    expect(res.pinValues['dff0:q']).toBe(0);
+
+    // Step 1: CLOCK becomes high (0 -> 1)
+    userCircuit.components.find((c) => c.id === 'clk')!.params.high = true;
+    res = sim.evaluate(userCircuit, res.componentStates);
+
+    expect(res.pinValues['clk:out']).toBe(1);
+    expect(res.pinValues['buf:out']).toBe(1);
+    expect(res.pinValues['dff0:clk']).toBe(1);
+    expect(res.pinValues['dff0:d']).toBe(1);
+    expect(res.pinValues['dff0:q']).toBe(1);
+    expect(res.componentStates['dff0']?.q).toBe(1);
+    expect(res.pinValues['led:in']).toBe(1);
+    expect(res.componentStates['led']?.lit).toBe(true);
+  });
+
+  it('evaluates Toggle Flip-Flop (Qbar -> D feedback loop)', () => {
+    const circuit: CircuitModel = {
+      version: 1,
+      mode: 'sandbox',
+      components: [
+        { id: 'clk', type: 'CLOCK', x: 0, y: 0, params: { high: false }, state: {} },
+        { id: 'tff', type: 'D_FLIP_FLOP', x: 100, y: 0, params: {}, state: { q: 0, lastClk: 0 } },
+      ],
+      wires: [
+        { id: 'w_clk', from: { comp: 'clk', pin: 'out' }, to: { comp: 'tff', pin: 'clk' } },
+        { id: 'w_fb', from: { comp: 'tff', pin: 'qbar' }, to: { comp: 'tff', pin: 'd' } },
+      ],
+    };
+
+    // Step 0: clk is 0. Q is 0, Qbar is 1 -> D is 1
+    let res = sim.evaluate(circuit);
+    expect(res.pinValues['tff:q']).toBe(0);
+    expect(res.pinValues['tff:qbar']).toBe(1);
+    expect(res.pinValues['tff:d']).toBe(1);
+
+    // Step 1: clk goes HIGH (0 -> 1). Rising edge! Q should become 1, Qbar 0 -> D becomes 0
+    circuit.components[0].params.high = true;
+    res = sim.evaluate(circuit, res.componentStates);
+    expect(res.pinValues['tff:q']).toBe(1);
+    expect(res.pinValues['tff:qbar']).toBe(0);
+    expect(res.pinValues['tff:d']).toBe(0);
+
+    // Step 2: clk goes LOW (1 -> 0). Falling edge! Q should stay 1
+    circuit.components[0].params.high = false;
+    res = sim.evaluate(circuit, res.componentStates);
+    expect(res.pinValues['tff:q']).toBe(1);
+    expect(res.pinValues['tff:qbar']).toBe(0);
+
+    // Step 3: clk goes HIGH again (0 -> 1). Rising edge! Q should become 0 (toggled!)
+    circuit.components[0].params.high = true;
+    res = sim.evaluate(circuit, res.componentStates);
+    expect(res.pinValues['tff:q']).toBe(0);
+    expect(res.pinValues['tff:qbar']).toBe(1);
+  });
+
+  it('evaluates Push Button (BUTTON) component driving an LED', () => {
+    const circuit: CircuitModel = {
+      version: 1,
+      mode: 'sandbox',
+      components: [
+        { id: 'btn', type: 'BUTTON', x: 0, y: 0, params: { pressed: false } },
+        { id: 'led', type: 'LED', x: 100, y: 0, params: {} },
+      ],
+      wires: [
+        { id: 'w1', from: { comp: 'btn', pin: 'out' }, to: { comp: 'led', pin: 'in' } },
+      ],
+    };
+
+    // When button is not pressed, output is 0 and LED is unlit
+    let res = sim.evaluate(circuit);
+    expect(res.pinValues['btn:out']).toBe(0);
+    expect(res.componentStates['led']?.lit).toBe(false);
+
+    // When button is pressed, output is 1 and LED is lit
+    circuit.components[0].params.pressed = true;
+    res = sim.evaluate(circuit, res.componentStates);
+    expect(res.pinValues['btn:out']).toBe(1);
+    expect(res.pinValues['led:in']).toBe(1);
+    expect(res.componentStates['led']?.lit).toBe(true);
+
+    // When button is released, output returns to 0 and LED turns off
+    circuit.components[0].params.pressed = false;
+    res = sim.evaluate(circuit, res.componentStates);
+    expect(res.pinValues['btn:out']).toBe(0);
+    expect(res.pinValues['led:in']).toBe(0);
+    expect(res.componentStates['led']?.lit).toBe(false);
+  });
 });

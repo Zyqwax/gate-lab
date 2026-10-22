@@ -17,7 +17,6 @@ import {
   Undo2,
   Redo2,
   Trash2,
-  Gauge,
   Sparkles,
   Maximize2,
   Minimize2,
@@ -59,8 +58,6 @@ export const Toolbar: React.FC<ToolbarProps> = ({
     togglePlay,
     step,
     resetSimulation,
-    tickRateHz,
-    setTickRate,
     clearCircuit,
     exportJSON,
     importJSON,
@@ -464,31 +461,6 @@ export const Toolbar: React.FC<ToolbarProps> = ({
                   >
                     TR
                   </button>
-                </div>
-              </div>
-
-              {/* Simulation Frequency in More Menu */}
-              <div className="px-3 py-1.5 border-b border-slate-800/80">
-                <div className="flex items-center justify-between text-[11px] text-slate-400 mb-1">
-                  <span className="flex items-center gap-1">
-                    <Gauge className="w-3 h-3" /> {t("simulationSpeed")}
-                  </span>
-                  <span className="font-mono text-emerald-400 font-bold">{tickRateHz} Hz</span>
-                </div>
-                <div className="flex items-center gap-1 mt-1">
-                  {[1, 2, 5, 10, 20].map((hz) => (
-                    <button
-                      key={hz}
-                      onClick={() => setTickRate(hz)}
-                      className={`flex-1 py-1 rounded text-[10px] font-mono font-bold transition-colors ${
-                        tickRateHz === hz
-                          ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/40"
-                          : "bg-slate-800 text-slate-400 hover:text-white"
-                      }`}
-                    >
-                      {hz}
-                    </button>
-                  ))}
                 </div>
               </div>
 

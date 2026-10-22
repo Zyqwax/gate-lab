@@ -148,20 +148,44 @@ export const Inspector: React.FC<InspectorProps> = ({ onClose }) => {
             {/* Clock Frequency */}
             {comp.type === 'CLOCK' && (
               <div>
-                <label className="text-[11px] font-medium text-slate-400 mb-1.5 block">
-                  {t('signalFrequency')} ({params.frequency ?? 1} Hz)
+                <label className="text-[11px] font-medium text-slate-400 mb-1.5 flex items-center justify-between">
+                  <span>{t('signalFrequency')}</span>
+                  <span className="font-mono text-emerald-400 font-bold">{params.frequency ?? 1} Hz</span>
                 </label>
-                <select
-                  value={params.frequency ?? 1}
-                  onChange={(e) => updateComponentParams(selectedId!, { frequency: Number(e.target.value) })}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1.5 text-xs text-slate-200 focus:outline-none cursor-pointer"
-                >
-                  <option value={0.5}>0.5 Hz</option>
-                  <option value={1}>1 Hz</option>
-                  <option value={2}>2 Hz</option>
-                  <option value={5}>5 Hz</option>
-                  <option value={10}>10 Hz</option>
-                </select>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="number"
+                    min={0.1}
+                    max={50}
+                    step={0.5}
+                    value={params.frequency ?? 1}
+                    onChange={(e) => {
+                      const val = parseFloat(e.target.value);
+                      updateComponentParams(selectedId!, {
+                        frequency: isNaN(val) ? 1 : Math.max(0.1, Math.min(50, val)),
+                      });
+                    }}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1.5 text-xs font-mono text-slate-200 focus:outline-none focus:border-emerald-500 transition-colors"
+                    placeholder="1"
+                  />
+                  <span className="text-xs font-mono text-slate-400 font-bold">Hz</span>
+                </div>
+                <div className="flex items-center gap-1 mt-2">
+                  {[0.5, 1, 2, 5, 10, 20].map((quickHz) => (
+                    <button
+                      key={quickHz}
+                      type="button"
+                      onClick={() => updateComponentParams(selectedId!, { frequency: quickHz })}
+                      className={`flex-1 py-1 rounded text-[10px] font-mono font-bold transition-colors cursor-pointer ${
+                        params.frequency === quickHz
+                          ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40'
+                          : 'bg-slate-950 border border-slate-800 text-slate-400 hover:text-white'
+                      }`}
+                    >
+                      {quickHz}
+                    </button>
+                  ))}
+                </div>
               </div>
             )}
           </div>

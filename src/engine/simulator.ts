@@ -45,93 +45,165 @@ export class Simulator {
     }
 
     let iterations = 0;
-    let hasChanged = true;
     let oscillating = false;
 
-    while (hasChanged && iterations < this.maxIterations) {
-      hasChanged = false;
-      iterations++;
+    // Helper to settle combinational logic to steady state
+    const settle = (): number => {
+      let iters = 0;
+      let hasChanged = true;
 
-      // 1. Evaluate all components using their current inputs and internal state
-      for (const comp of circuit.components) {
-        const def = this.registry.get(comp.type);
-        if (!def) continue;
+      while (hasChanged && iters < this.maxIterations) {
+        hasChanged = false;
+        iters++;
 
-        const pins = getComponentPins(def, comp.params);
-
-        // Gather current input pin values for this component
-        const compInputs: Record<string, Signal> = {};
-        for (const pin of pins) {
-          if (pin.dir === 'in' || pin.dir === 'io') {
-            const key = `${comp.id}:${pin.id}`;
-            compInputs[pin.id] = pinInputs.get(key) ?? 'Z';
-          }
-        }
-
-        const currentState = componentStates[comp.id];
-        const res = def.eval(compInputs, currentState, comp.params);
-
-        if (res.state !== undefined) {
-          componentStates[comp.id] = res.state;
-        }
-
-        // Store outputs and check if anything changed
-        for (const [pinId, sig] of Object.entries(res.outputs)) {
-          const key = `${comp.id}:${pinId}`;
-          const oldSig = pinOutputs.get(key);
-          if (oldSig !== sig) {
-            pinOutputs.set(key, sig);
-            hasChanged = true;
-          }
-        }
-      }
-
-      // 2. Propagate pin outputs to nets and then from nets to pin inputs
-      for (const net of netlist.nets) {
-        const drivers: Signal[] = [];
-
-        for (const pinKey of net.pins) {
-          const [compId, pinId] = pinKey.split(':');
-          const comp = circuit.components.find((c) => c.id === compId);
-          if (!comp) continue;
+        // 1. Evaluate all components using current inputs and internal state
+        for (const comp of circuit.components) {
           const def = this.registry.get(comp.type);
-          const pinDef = def ? getComponentPins(def, comp.params).find((p) => p.id === pinId) : undefined;
+          if (!def) continue;
 
-          if (pinDef && (pinDef.dir === 'out' || pinDef.dir === 'io')) {
-            const outSig = pinOutputs.get(pinKey) ?? 'Z';
-            drivers.push(outSig);
+          // For D_FLIP_FLOP during combinational settling:
+          // It holds its current Q/Qbar output and does NOT prematurely sample unpropagated glitches!
+          if (comp.type === 'D_FLIP_FLOP') {
+            const state = componentStates[comp.id] ?? { q: 0, lastClk: 0 };
+            const qSig: Signal = state.q === 1 ? 1 : 0;
+            const qbarSig: Signal = state.q === 1 ? 0 : 1;
+
+            if (pinOutputs.get(`${comp.id}:q`) !== qSig) {
+              pinOutputs.set(`${comp.id}:q`, qSig);
+              hasChanged = true;
+            }
+            if (pinOutputs.get(`${comp.id}:qbar`) !== qbarSig) {
+              pinOutputs.set(`${comp.id}:qbar`, qbarSig);
+              hasChanged = true;
+            }
+            continue;
           }
-        }
 
-        // Resolve all drivers on this net
-        const resolved = resolveSignals(drivers);
-        const oldNetSig = netSignals.get(net.id);
-        if (oldNetSig !== resolved) {
-          netSignals.set(net.id, resolved);
-          hasChanged = true;
-        }
+          const pins = getComponentPins(def, comp.params);
 
-        // Propagate resolved signal to all receiver pins on this net
-        for (const pinKey of net.pins) {
-          const [compId, pinId] = pinKey.split(':');
-          const comp = circuit.components.find((c) => c.id === compId);
-          if (!comp) continue;
-          const def = this.registry.get(comp.type);
-          const pinDef = def ? getComponentPins(def, comp.params).find((p) => p.id === pinId) : undefined;
+          // Gather current input pin values for this component
+          const compInputs: Record<string, Signal> = {};
+          for (const pin of pins) {
+            if (pin.dir === 'in' || pin.dir === 'io') {
+              const key = `${comp.id}:${pin.id}`;
+              compInputs[pin.id] = pinInputs.get(key) ?? 'Z';
+            }
+          }
 
-          if (pinDef && (pinDef.dir === 'in' || pinDef.dir === 'io')) {
-            const oldInSig = pinInputs.get(pinKey);
-            if (oldInSig !== resolved) {
-              pinInputs.set(pinKey, resolved);
+          const currentState = componentStates[comp.id];
+          const res = def.eval(compInputs, currentState, comp.params);
+
+          if (res.state !== undefined) {
+            componentStates[comp.id] = res.state;
+          }
+
+          // Store outputs and check if anything changed
+          for (const [pinId, sig] of Object.entries(res.outputs)) {
+            const key = `${comp.id}:${pinId}`;
+            const oldSig = pinOutputs.get(key);
+            if (oldSig !== sig) {
+              pinOutputs.set(key, sig);
               hasChanged = true;
             }
           }
         }
-      }
-    }
 
-    if (iterations >= this.maxIterations && hasChanged) {
-      oscillating = true;
+        // 2. Propagate pin outputs to nets and then from nets to pin inputs
+        for (const net of netlist.nets) {
+          const drivers: Signal[] = [];
+
+          for (const pinKey of net.pins) {
+            const [compId, pinId] = pinKey.split(':');
+            const comp = circuit.components.find((c) => c.id === compId);
+            if (!comp) continue;
+            const def = this.registry.get(comp.type);
+            const pinDef = def ? getComponentPins(def, comp.params).find((p) => p.id === pinId) : undefined;
+
+            if (pinDef && (pinDef.dir === 'out' || pinDef.dir === 'io')) {
+              const outSig = pinOutputs.get(pinKey) ?? 'Z';
+              drivers.push(outSig);
+            }
+          }
+
+          // Resolve all drivers on this net
+          const resolved = resolveSignals(drivers);
+          const oldNetSig = netSignals.get(net.id);
+          if (oldNetSig !== resolved) {
+            netSignals.set(net.id, resolved);
+            hasChanged = true;
+          }
+
+          // Propagate resolved signal to all receiver pins on this net
+          for (const pinKey of net.pins) {
+            const [compId, pinId] = pinKey.split(':');
+            const comp = circuit.components.find((c) => c.id === compId);
+            if (!comp) continue;
+            const def = this.registry.get(comp.type);
+            const pinDef = def ? getComponentPins(def, comp.params).find((p) => p.id === pinId) : undefined;
+
+            if (pinDef && (pinDef.dir === 'in' || pinDef.dir === 'io')) {
+              const oldInSig = pinInputs.get(pinKey);
+              if (oldInSig !== resolved) {
+                pinInputs.set(pinKey, resolved);
+                hasChanged = true;
+              }
+            }
+          }
+        }
+      }
+
+      if (iters >= this.maxIterations && hasChanged) {
+        oscillating = true;
+      }
+      return iters;
+    };
+
+    // Phase 1: Combinational signals settle to steady state
+    iterations += settle();
+
+    // Phase 2: Edge-triggered sequential sampling (D_FLIP_FLOP)
+    // Supports both synchronous clocking and asynchronous ripple clock chains (FF1.Q -> FF2.CLK)
+    let anyDffTriggered = true;
+    let dffPass = 0;
+    while (anyDffTriggered && dffPass < 10) {
+      anyDffTriggered = false;
+      dffPass++;
+
+      const dffUpdates: { compId: string; nextQ: number; nextClk: number }[] = [];
+      for (const comp of circuit.components) {
+        if (comp.type === 'D_FLIP_FLOP') {
+          const state = componentStates[comp.id] ?? { q: 0, lastClk: 0 };
+          const lastClk = (dffPass === 1 && previousStates[comp.id]?.lastClk !== undefined)
+            ? previousStates[comp.id].lastClk
+            : state.lastClk ?? 0;
+          const currentClk = pinInputs.get(`${comp.id}:clk`) === 1 ? 1 : 0;
+          const currentD = pinInputs.get(`${comp.id}:d`) === 1 ? 1 : 0;
+
+          let nextQ = state.q ?? 0;
+          // Rising edge detection (0 -> 1)
+          if (lastClk === 0 && currentClk === 1) {
+            nextQ = currentD;
+          }
+
+          dffUpdates.push({ compId: comp.id, nextQ, nextClk: currentClk });
+        }
+      }
+
+      // Commit states
+      for (const up of dffUpdates) {
+        const oldState = componentStates[up.compId] ?? { q: 0, lastClk: 0 };
+        if (oldState.q !== up.nextQ) {
+          anyDffTriggered = true;
+        }
+        componentStates[up.compId] = { q: up.nextQ, lastClk: up.nextClk };
+        pinOutputs.set(`${up.compId}:q`, up.nextQ === 1 ? 1 : 0);
+        pinOutputs.set(`${up.compId}:qbar`, up.nextQ === 1 ? 0 : 1);
+      }
+
+      // If any flip-flop changed Q, settle downstream logic (or downstream flip-flop clocks!)
+      if (anyDffTriggered) {
+        iterations += settle();
+      }
     }
 
     // Prepare unified pin values map

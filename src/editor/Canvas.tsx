@@ -309,7 +309,10 @@ const CanvasInner: React.FC = () => {
       <ContextMenu
         menu={contextMenu}
         onClose={() => setContextMenu((prev) => ({ ...prev, isOpen: false }))}
-        onSelectProperties={(nodeId) => selectComponent(nodeId)}
+        onSelectProperties={(nodeId) => {
+          selectComponent(nodeId);
+          useCircuitStore.getState().setInspectorOpen(true);
+        }}
         onOpenInfo={(compType) => {
           const def = getComponentDef(compType);
           if (def) setInfoModalDef(def);

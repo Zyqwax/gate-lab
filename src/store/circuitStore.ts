@@ -33,9 +33,18 @@ export interface CircuitState {
   currentProjectName: string;
   isSaved: boolean;
 
-  // UI Settings
+  // UI Settings & Panels (Persisted in localStorage)
+  isSidebarOpen: boolean;
+  toggleSidebar: () => void;
+  setSidebarOpen: (open: boolean) => void;
+
+  isInspectorOpen: boolean;
+  toggleInspector: () => void;
+  setInspectorOpen: (open: boolean) => void;
+
   showMinimap: boolean;
   toggleMinimap: () => void;
+  setMinimap: (show: boolean) => void;
 
   // Actions
   setProject: (id: string, name: string, model: CircuitModel) => void;
@@ -55,6 +64,7 @@ export interface CircuitState {
   setButtonPressed: (compId: string, pressed: boolean) => void;
 
   step: () => void;
+  tickSimulation: (now: number) => void;
   togglePlay: () => void;
   setTickRate: (hz: number) => void;
   resetSimulation: () => void;
@@ -75,6 +85,18 @@ export interface CircuitState {
 
 // Initial full adder circuit loaded by default!
 const initialTemplate = TEMPLATES[0]; // Full Adder!
+
+// Helper to read persisted boolean preference from localStorage
+const getInitialBoolPref = (key: string, defaultValue: boolean): boolean => {
+  if (typeof window === 'undefined') return defaultValue;
+  try {
+    const val = localStorage.getItem(key);
+    if (val === null) return defaultValue;
+    return val === 'true' || val === '1';
+  } catch {
+    return defaultValue;
+  }
+};
 
 export const useCircuitStore = create<CircuitState>((set, get) => {
   // Helper to run simulation against current state
@@ -123,8 +145,46 @@ export const useCircuitStore = create<CircuitState>((set, get) => {
         ? 'İsimsiz Devre Projesi'
         : 'Untitled Circuit Project',
     isSaved: true,
-    showMinimap: true,
-    toggleMinimap: () => set((state) => ({ showMinimap: !state.showMinimap })),
+
+    // UI Preferences (Persisted)
+    isSidebarOpen: getInitialBoolPref('gatelab_pref_sidebar', true),
+    toggleSidebar: () => {
+      set((state) => {
+        const next = !state.isSidebarOpen;
+        try { localStorage.setItem('gatelab_pref_sidebar', String(next)); } catch {}
+        return { isSidebarOpen: next };
+      });
+    },
+    setSidebarOpen: (open: boolean) => {
+      try { localStorage.setItem('gatelab_pref_sidebar', String(open)); } catch {}
+      set({ isSidebarOpen: open });
+    },
+
+    isInspectorOpen: getInitialBoolPref('gatelab_pref_inspector', true),
+    toggleInspector: () => {
+      set((state) => {
+        const next = !state.isInspectorOpen;
+        try { localStorage.setItem('gatelab_pref_inspector', String(next)); } catch {}
+        return { isInspectorOpen: next };
+      });
+    },
+    setInspectorOpen: (open: boolean) => {
+      try { localStorage.setItem('gatelab_pref_inspector', String(open)); } catch {}
+      set({ isInspectorOpen: open });
+    },
+
+    showMinimap: getInitialBoolPref('gatelab_pref_minimap', true),
+    toggleMinimap: () => {
+      set((state) => {
+        const next = !state.showMinimap;
+        try { localStorage.setItem('gatelab_pref_minimap', String(next)); } catch {}
+        return { showMinimap: next };
+      });
+    },
+    setMinimap: (show: boolean) => {
+      try { localStorage.setItem('gatelab_pref_minimap', String(show)); } catch {}
+      set({ showMinimap: show });
+    },
 
     editorMode: 'movement',
     setEditorMode: (mode) => set({ editorMode: mode }),
@@ -393,6 +453,7 @@ export const useCircuitStore = create<CircuitState>((set, get) => {
 
     step: () => {
       const { components, wires, simResult, stepCount } = get();
+      const now = typeof performance !== 'undefined' ? performance.now() : Date.now();
 
       // Invert CLOCK outputs on step
       const updatedComponents = components.map((c) => {
@@ -400,6 +461,7 @@ export const useCircuitStore = create<CircuitState>((set, get) => {
           return {
             ...c,
             params: { ...c.params, high: !c.params.high },
+            state: { ...(c.state || {}), lastToggle: now },
           };
         }
         return c;
@@ -413,8 +475,56 @@ export const useCircuitStore = create<CircuitState>((set, get) => {
       });
     },
 
+    tickSimulation: (now: number) => {
+      const { isRunning, components, wires, simResult, stepCount } = get();
+      if (!isRunning) return;
+
+      let anyClockToggled = false;
+      const updatedComponents = components.map((c) => {
+        if (c.type === 'CLOCK') {
+          const freq = Math.max(0.1, Math.min(50, Number(c.params?.frequency) || 1));
+          const halfPeriodMs = 500 / freq;
+          const lastToggle = typeof c.state?.lastToggle === 'number' ? c.state.lastToggle : now;
+          if (now - lastToggle >= halfPeriodMs) {
+            anyClockToggled = true;
+            return {
+              ...c,
+              params: { ...c.params, high: !c.params.high },
+              state: { ...(c.state || {}), lastToggle: now },
+            };
+          }
+        }
+        return c;
+      });
+
+      if (anyClockToggled) {
+        const newSim = runSim(updatedComponents, wires, simResult.componentStates);
+        set({
+          components: updatedComponents,
+          simResult: newSim,
+          stepCount: stepCount + 1,
+        });
+      }
+    },
+
     togglePlay: () => {
-      set((state) => ({ isRunning: !state.isRunning }));
+      set((state) => {
+        const nextRunning = !state.isRunning;
+        if (nextRunning) {
+          const now = typeof performance !== 'undefined' ? performance.now() : Date.now();
+          const components = state.components.map((c) => {
+            if (c.type === 'CLOCK') {
+              return {
+                ...c,
+                state: { ...(c.state || {}), lastToggle: now },
+              };
+            }
+            return c;
+          });
+          return { isRunning: nextRunning, components };
+        }
+        return { isRunning: nextRunning };
+      });
     },
 
     setTickRate: (hz) => {
@@ -423,12 +533,21 @@ export const useCircuitStore = create<CircuitState>((set, get) => {
 
     resetSimulation: () => {
       set((state) => {
+        const now = typeof performance !== 'undefined' ? performance.now() : Date.now();
         const components = state.components.map((c) => {
           const def = getComponentDef(c.type);
+          const baseState = def?.defaultState ? JSON.parse(JSON.stringify(def.defaultState)) : {};
+          if (c.type === 'CLOCK') {
+            baseState.lastToggle = now;
+          }
           return {
             ...c,
-            params: { ...(def?.defaultParams || {}), ...(c.params || {}) },
-            state: def?.defaultState ? JSON.parse(JSON.stringify(def.defaultState)) : {},
+            params: {
+              ...(def?.defaultParams || {}),
+              ...(c.params || {}),
+              ...(c.type === 'CLOCK' ? { high: false } : {}),
+            },
+            state: baseState,
           };
         });
         const simResult = runSim(components, state.wires);

@@ -250,11 +250,12 @@ export const DisplayNode: React.FC<NodeProps> = ({ id, data, selected }) => {
 
       {selected && (
         <button
+          type="button"
           onClick={(e) => {
             e.stopPropagation();
             removeComponent(id);
           }}
-          className="absolute -top-2.5 -right-2.5 w-5 h-5 rounded-full bg-rose-600 hover:bg-rose-500 text-white flex items-center justify-center text-xs shadow-md"
+          className="nodrag nopan select-none touch-none absolute -top-2.5 -right-2.5 w-5 h-5 rounded-full bg-rose-600 hover:bg-rose-500 text-white flex items-center justify-center text-xs shadow-md cursor-pointer"
           title="Sil"
         >
           ×

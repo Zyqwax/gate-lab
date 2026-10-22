@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef, useCallback, useEffect } from 'react';
 import { Handle, Position, NodeProps } from '@xyflow/react';
 import { useCircuitStore } from '../../store/circuitStore';
 import { getSignalColor } from '../../engine/signal';
@@ -18,6 +18,62 @@ export const IONode: React.FC<NodeProps> = ({ id, data, selected }) => {
   const isMultiOutput = compType === 'DIP_SWITCH_4' || compType === 'DECIMAL_INPUT';
   const outSignal = pinValues[`${id}:out`] ?? (compType === 'CONST_HIGH' ? 1 : 0);
   const isHigh = outSignal === 1;
+
+  // Push Button timing & gesture handling (supports hold and single-click pulse on touch & mouse)
+  const pulseTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const isPointerDownRef = useRef(false);
+  const pressStartTimeRef = useRef(0);
+
+  useEffect(() => {
+    return () => {
+      if (pulseTimeoutRef.current) {
+        clearTimeout(pulseTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  const handleButtonPressStart = useCallback(
+    (e?: React.SyntheticEvent) => {
+      if (e) {
+        e.stopPropagation();
+      }
+      if (pulseTimeoutRef.current) {
+        clearTimeout(pulseTimeoutRef.current);
+        pulseTimeoutRef.current = null;
+      }
+      isPointerDownRef.current = true;
+      pressStartTimeRef.current = Date.now();
+      setButtonPressed(id, true);
+    },
+    [id, setButtonPressed]
+  );
+
+  const handleButtonPressEnd = useCallback(
+    (e?: React.SyntheticEvent) => {
+      if (e) {
+        e.stopPropagation();
+      }
+      isPointerDownRef.current = false;
+      const elapsed = Date.now() - pressStartTimeRef.current;
+      // Guarantee a minimum pulse duration of 220ms so a quick click / tap ("tek basım")
+      // produces a clearly visible signal on the canvas wires and downstream LEDs,
+      // while releasing immediately if the user was holding it for longer.
+      const remaining = Math.max(0, 220 - elapsed);
+      if (pulseTimeoutRef.current) {
+        clearTimeout(pulseTimeoutRef.current);
+      }
+      if (remaining > 0) {
+        pulseTimeoutRef.current = setTimeout(() => {
+          if (!isPointerDownRef.current) {
+            setButtonPressed(id, false);
+          }
+        }, remaining);
+      } else {
+        setButtonPressed(id, false);
+      }
+    },
+    [id, setButtonPressed]
+  );
 
   // DIP Switch 4-bit state: params.bits = [b0, b1, b2, b3] (0=LSB, 3=MSB)
   const dipBits: number[] = Array.isArray(params.bits) ? params.bits : [0, 0, 0, 0];
@@ -73,11 +129,12 @@ export const IONode: React.FC<NodeProps> = ({ id, data, selected }) => {
       <div className="flex items-center justify-center my-1">
         {compType === 'SWITCH' && (
           <button
+            type="button"
             onClick={(e) => {
               e.stopPropagation();
               toggleSwitch(id);
             }}
-            className={`w-14 h-7 rounded-full p-1 transition-colors duration-200 flex items-center shadow-inner cursor-pointer ${
+            className={`nodrag nopan select-none touch-none w-14 h-7 rounded-full p-1 transition-colors duration-200 flex items-center shadow-inner cursor-pointer ${
               isHigh ? 'bg-emerald-500 shadow-emerald-500/30' : 'bg-slate-700'
             }`}
           >
@@ -93,31 +150,81 @@ export const IONode: React.FC<NodeProps> = ({ id, data, selected }) => {
 
         {compType === 'BUTTON' && (
           <button
-            onMouseDown={() => setButtonPressed(id, true)}
-            onMouseUp={() => setButtonPressed(id, false)}
-            onMouseLeave={() => setButtonPressed(id, false)}
-            className={`w-12 h-12 rounded-full border-2 font-mono font-bold text-sm shadow-lg transition-transform active:scale-95 flex items-center justify-center ${
-              params.pressed
-                ? 'bg-emerald-500 border-emerald-300 text-slate-950 shadow-emerald-500/50'
-                : 'bg-slate-800 border-slate-600 text-slate-300 hover:border-slate-500'
+            type="button"
+            className={`nodrag nopan select-none touch-none w-12 h-12 rounded-full border-2 font-mono font-bold text-xs shadow-lg transition-transform active:scale-95 flex flex-col items-center justify-center cursor-pointer ${
+              params.pressed || isHigh
+                ? 'bg-emerald-500 border-emerald-300 text-slate-950 shadow-emerald-500/50 scale-95'
+                : 'bg-slate-800 border-slate-600 text-slate-300 hover:border-slate-500 hover:bg-slate-750'
             }`}
+            onPointerDown={(e) => {
+              e.stopPropagation();
+              try {
+                (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+              } catch {}
+              handleButtonPressStart(e);
+            }}
+            onPointerUp={(e) => {
+              e.stopPropagation();
+              try {
+                (e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId);
+              } catch {}
+              handleButtonPressEnd(e);
+            }}
+            onPointerCancel={(e) => {
+              e.stopPropagation();
+              handleButtonPressEnd(e);
+            }}
+            onKeyDown={(e) => {
+              if (e.key === ' ' || e.key === 'Enter') {
+                e.preventDefault();
+                e.stopPropagation();
+                handleButtonPressStart(e);
+              }
+            }}
+            onKeyUp={(e) => {
+              if (e.key === ' ' || e.key === 'Enter') {
+                e.preventDefault();
+                e.stopPropagation();
+                handleButtonPressEnd(e);
+              }
+            }}
           >
-            PUSH
+            <span>PUSH</span>
+            <span className="text-[8px] font-mono opacity-80 leading-none mt-0.5">
+              {params.pressed || isHigh ? '1' : '0'}
+            </span>
           </button>
         )}
 
         {compType === 'CLOCK' && (
-          <div className="flex items-center gap-2 px-2 py-1 rounded bg-slate-800/80 border border-slate-700/60">
+          <div className="flex items-center gap-2 px-2.5 py-1 rounded-lg bg-slate-950/80 border border-slate-800">
             <div
-              className={`w-3.5 h-3.5 rounded-full border transition-all ${
+              className={`w-3.5 h-3.5 rounded-full border transition-all shrink-0 ${
                 isHigh
                   ? 'bg-emerald-400 border-emerald-200 shadow-[0_0_8px_#10b981]'
                   : 'bg-slate-700 border-slate-600'
               }`}
             />
-            <span className="text-xs font-mono text-slate-300">
-              {params.frequency ?? 1} Hz
-            </span>
+            <div className="flex items-center gap-1">
+              <input
+                type="number"
+                min="0.1"
+                max="50"
+                step="0.5"
+                value={params.frequency ?? 1}
+                onChange={(e) => {
+                  const val = parseFloat(e.target.value);
+                  updateComponentParams(id, {
+                    frequency: isNaN(val) ? 1 : Math.max(0.1, Math.min(50, val)),
+                  });
+                }}
+                className="nodrag nopan w-12 px-1 py-0.5 rounded bg-slate-900 border border-slate-700 text-emerald-400 font-mono text-xs font-bold text-center focus:outline-none focus:border-emerald-500 transition-colors cursor-text"
+                title="Saat Frekansı (Hz)"
+              />
+              <span className="text-[10px] font-mono font-bold text-slate-400 select-none">
+                Hz
+              </span>
+            </div>
           </div>
         )}
 
@@ -148,7 +255,7 @@ export const IONode: React.FC<NodeProps> = ({ id, data, selected }) => {
                         e.stopPropagation();
                         toggleDipBit(bitIdx);
                       }}
-                      className={`flex flex-col items-center justify-center w-8 h-12 rounded border transition-all cursor-pointer ${
+                      className={`nodrag nopan select-none touch-none flex flex-col items-center justify-center w-8 h-12 rounded border transition-all cursor-pointer ${
                         isActive
                           ? 'bg-emerald-500 border-emerald-300 text-slate-950 shadow-md shadow-emerald-500/30'
                           : 'bg-slate-800 border-slate-700 text-slate-400 hover:bg-slate-750'
@@ -223,7 +330,7 @@ export const IONode: React.FC<NodeProps> = ({ id, data, selected }) => {
                     changeDecInput(-1);
                   }}
                   disabled={decInputVal <= 0}
-                  className="w-7 h-7 rounded-md bg-slate-800 hover:bg-slate-700 disabled:opacity-30 disabled:cursor-not-allowed text-slate-200 flex items-center justify-center cursor-pointer transition-colors"
+                  className="nodrag nopan select-none touch-none w-7 h-7 rounded-md bg-slate-800 hover:bg-slate-700 disabled:opacity-30 disabled:cursor-not-allowed text-slate-200 flex items-center justify-center cursor-pointer transition-colors"
                   title="-1"
                 >
                   <Minus className="w-3.5 h-3.5" />
@@ -243,7 +350,7 @@ export const IONode: React.FC<NodeProps> = ({ id, data, selected }) => {
                     changeDecInput(1);
                   }}
                   disabled={decInputVal >= 15}
-                  className="w-7 h-7 rounded-md bg-slate-800 hover:bg-slate-700 disabled:opacity-30 disabled:cursor-not-allowed text-slate-200 flex items-center justify-center cursor-pointer transition-colors"
+                  className="nodrag nopan select-none touch-none w-7 h-7 rounded-md bg-slate-800 hover:bg-slate-700 disabled:opacity-30 disabled:cursor-not-allowed text-slate-200 flex items-center justify-center cursor-pointer transition-colors"
                   title="+1"
                 >
                   <Plus className="w-3.5 h-3.5" />
@@ -304,11 +411,12 @@ export const IONode: React.FC<NodeProps> = ({ id, data, selected }) => {
 
       {selected && (
         <button
+          type="button"
           onClick={(e) => {
             e.stopPropagation();
             removeComponent(id);
           }}
-          className="absolute -top-2.5 -right-2.5 w-5 h-5 rounded-full bg-rose-600 hover:bg-rose-500 text-white flex items-center justify-center text-xs shadow-md cursor-pointer"
+          className="nodrag nopan select-none touch-none absolute -top-2.5 -right-2.5 w-5 h-5 rounded-full bg-rose-600 hover:bg-rose-500 text-white flex items-center justify-center text-xs shadow-md cursor-pointer"
           title="Sil"
         >
           ×
