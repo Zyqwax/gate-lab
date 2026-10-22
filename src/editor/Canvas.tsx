@@ -301,9 +301,5 @@ const CanvasInner: React.FC = () => {
 };
 
 export const Canvas: React.FC = () => {
-  return (
-    <ReactFlowProvider>
-      <CanvasInner />
-    </ReactFlowProvider>
-  );
+  return <CanvasInner />;
 };

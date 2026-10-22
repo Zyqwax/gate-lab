@@ -10,6 +10,7 @@ import { WelcomeModal } from './panels/WelcomeModal';
 import { useCircuitStore } from './store/circuitStore';
 import { useTranslation } from './i18n';
 import { ChevronRight, ChevronLeft, Sliders } from 'lucide-react';
+import { ReactFlowProvider } from '@xyflow/react';
 
 export const App: React.FC = () => {
   const { t } = useTranslation();
@@ -56,8 +57,9 @@ export const App: React.FC = () => {
         onToggleInspector={() => setIsInspectorOpen((prev) => !prev)}
       />
 
-      {/* Main Workspace Body */}
-      <div className="flex flex-1 overflow-hidden relative">
+      {/* Main Workspace Body with Shared ReactFlow Context */}
+      <ReactFlowProvider>
+        <div className="flex flex-1 overflow-hidden relative">
         {/* Left Component Palette with Smooth Collapse */}
         <div
           className={`transition-all duration-200 ease-in-out overflow-hidden flex z-10 ${
@@ -110,6 +112,7 @@ export const App: React.FC = () => {
           </div>
         </div>
       </div>
+    </ReactFlowProvider>
 
       {/* Modals */}
       <TruthTableModal

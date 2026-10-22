@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useCallback, useRef, useEffect } from "react";
+import { useReactFlow } from "@xyflow/react";
 import { COMPONENT_DEFINITIONS, getLocalizedComponentDefinitions } from "../components-lib/registry";
 import { TEMPLATES, getLocalizedTemplates } from "../templates/circuits";
 import { useCircuitStore } from "../store/circuitStore";
@@ -35,10 +36,177 @@ interface ComponentGroup {
 
 export const Palette: React.FC = () => {
   const { t, locale } = useTranslation();
+  const { screenToFlowPosition } = useReactFlow();
   const [searchTerm, setSearchTerm] = useState("");
   const [activeCategory, setActiveCategory] = useState<string>("all");
   const addComponent = useCircuitStore((state) => state.addComponent);
   const loadTemplate = useCircuitStore((state) => state.loadTemplate);
+
+  // Places the component in the center of the currently visible canvas viewport
+  const addComponentToViewportCenter = useCallback(
+    (compType: string) => {
+      const canvasEl = document.querySelector(".react-flow");
+      if (canvasEl) {
+        const rect = canvasEl.getBoundingClientRect();
+        const centerScreen = {
+          x: rect.left + rect.width / 2,
+          y: rect.top + rect.height / 2,
+        };
+        const flowPos = screenToFlowPosition(centerScreen);
+        // Add subtle random jitter (-15px..+15px) so multiple consecutive clicks don't stack directly on top
+        const jitterX = (Math.random() - 0.5) * 30;
+        const jitterY = (Math.random() - 0.5) * 30;
+        addComponent(compType, {
+          x: Math.round((flowPos.x + jitterX) / 10) * 10,
+          y: Math.round((flowPos.y + jitterY) / 10) * 10,
+        });
+      } else {
+        addComponent(compType, { x: 350, y: 220 });
+      }
+    },
+    [addComponent, screenToFlowPosition]
+  );
+
+  // Touch drag state & tracking for tablets/mobile
+  interface TouchGhostState {
+    type: string;
+    name: string;
+    x: number;
+    y: number;
+    isOverCanvas: boolean;
+  }
+
+  const [touchGhost, setTouchGhost] = useState<TouchGhostState | null>(null);
+  const touchSessionRef = useRef<{
+    startX: number;
+    startY: number;
+    compType: string;
+    compName: string;
+    isDragging: boolean;
+    startTime: number;
+  } | null>(null);
+  const lastTouchDropTimeRef = useRef<number>(0);
+
+  const handleTouchStart = (
+    e: React.TouchEvent,
+    compType: string,
+    compName: string,
+    fromGrip = false
+  ) => {
+    const touch = e.touches[0];
+    if (!touch) return;
+
+    touchSessionRef.current = {
+      startX: touch.clientX,
+      startY: touch.clientY,
+      compType,
+      compName,
+      isDragging: fromGrip,
+      startTime: Date.now(),
+    };
+
+    if (fromGrip) {
+      setTouchGhost({
+        type: compType,
+        name: compName,
+        x: touch.clientX,
+        y: touch.clientY,
+        isOverCanvas: false,
+      });
+    }
+  };
+
+  useEffect(() => {
+    const onWindowTouchMove = (e: TouchEvent) => {
+      const session = touchSessionRef.current;
+      if (!session) return;
+      const touch = e.touches[0];
+      if (!touch) return;
+
+      const dx = touch.clientX - session.startX;
+      const dy = touch.clientY - session.startY;
+
+      // Start drag if user moved horizontally to the right or moved past threshold
+      if (!session.isDragging) {
+        if (dx > 20 || Math.hypot(dx, dy) > 25) {
+          session.isDragging = true;
+        }
+      }
+
+      if (session.isDragging) {
+        if (e.cancelable) {
+          e.preventDefault();
+        }
+
+        let isOverCanvas = false;
+        const canvasEl = document.querySelector(".react-flow");
+        if (canvasEl) {
+          const rect = canvasEl.getBoundingClientRect();
+          isOverCanvas =
+            touch.clientX >= rect.left &&
+            touch.clientX <= rect.right &&
+            touch.clientY >= rect.top &&
+            touch.clientY <= rect.bottom;
+        }
+
+        setTouchGhost({
+          type: session.compType,
+          name: session.compName,
+          x: touch.clientX,
+          y: touch.clientY,
+          isOverCanvas,
+        });
+      }
+    };
+
+    const onWindowTouchEnd = (e: TouchEvent) => {
+      const session = touchSessionRef.current;
+      if (!session) return;
+
+      const touch = e.changedTouches[0];
+      if (session.isDragging && touch) {
+        lastTouchDropTimeRef.current = Date.now();
+        const canvasEl = document.querySelector(".react-flow");
+        if (canvasEl) {
+          const rect = canvasEl.getBoundingClientRect();
+          const isOverCanvas =
+            touch.clientX >= rect.left &&
+            touch.clientX <= rect.right &&
+            touch.clientY >= rect.top &&
+            touch.clientY <= rect.bottom;
+
+          if (isOverCanvas) {
+            const flowPos = screenToFlowPosition({
+              x: touch.clientX,
+              y: touch.clientY,
+            });
+            addComponent(session.compType, {
+              x: Math.round(flowPos.x / 10) * 10,
+              y: Math.round(flowPos.y / 10) * 10,
+            });
+          }
+        }
+      }
+
+      touchSessionRef.current = null;
+      setTouchGhost(null);
+    };
+
+    const onWindowTouchCancel = () => {
+      touchSessionRef.current = null;
+      setTouchGhost(null);
+    };
+
+    window.addEventListener("touchmove", onWindowTouchMove, { passive: false });
+    window.addEventListener("touchend", onWindowTouchEnd, { passive: false });
+    window.addEventListener("touchcancel", onWindowTouchCancel);
+
+    return () => {
+      window.removeEventListener("touchmove", onWindowTouchMove);
+      window.removeEventListener("touchend", onWindowTouchEnd);
+      window.removeEventListener("touchcancel", onWindowTouchCancel);
+    };
+  }, [addComponent, screenToFlowPosition]);
 
   const categories = [
     { id: "all", label: t("catAll"), icon: Boxes },
@@ -247,10 +415,12 @@ export const Palette: React.FC = () => {
                       key={comp.type}
                       draggable
                       onDragStart={(e) => onDragStart(e, comp.type)}
+                      onTouchStart={(e) => handleTouchStart(e, comp.type, comp.name, false)}
                       onClick={() => {
-                        addComponent(comp.type, { x: 350, y: 220 });
+                        if (Date.now() - lastTouchDropTimeRef.current < 450) return;
+                        addComponentToViewportCenter(comp.type);
                       }}
-                      className="group relative px-2.5 py-2.5 min-h-[46px] rounded-xl border border-slate-800/70 bg-slate-950/60 hover:bg-slate-800/70 hover:border-sky-500/50 cursor-grab active:cursor-grabbing transition-all flex items-center justify-between"
+                      className="group relative px-2.5 py-2.5 min-h-[46px] rounded-xl border border-slate-800/70 bg-slate-950/60 hover:bg-slate-800/70 hover:border-sky-500/50 cursor-grab active:cursor-grabbing transition-all flex items-center justify-between touch-manipulation"
                     >
                       <div className="flex items-center gap-2.5 min-w-0">
                         {/* Generous Visual Icon Container */}
@@ -272,12 +442,26 @@ export const Palette: React.FC = () => {
                       {/* Quick Add / Drag Icon */}
                       <div className="flex items-center gap-1 shrink-0">
                         <button
-                          className="w-5.5 h-5.5 rounded bg-slate-800 hover:bg-emerald-600 text-slate-400 hover:text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            addComponentToViewportCenter(comp.type);
+                          }}
+                          className="w-5.5 h-5.5 rounded bg-slate-800 hover:bg-emerald-600 text-slate-400 hover:text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
                           title={t("addToCanvas")}
                         >
                           <Plus className="w-3.5 h-3.5" />
                         </button>
-                        <GripVertical className="w-3.5 h-3.5 text-slate-600 group-hover:text-slate-400 transition-colors" />
+                        <div
+                          className="p-1 -m-1 cursor-grab touch-none"
+                          onTouchStart={(e) => {
+                            e.stopPropagation();
+                            handleTouchStart(e, comp.type, comp.name, true);
+                          }}
+                          title={t("addToCanvas")}
+                        >
+                          <GripVertical className="w-3.5 h-3.5 text-slate-600 group-hover:text-slate-400 transition-colors" />
+                        </div>
                       </div>
                     </div>
                   ))}
@@ -297,12 +481,49 @@ export const Palette: React.FC = () => {
       {/* Footer Info */}
       <div className="p-2 border-t border-slate-800 text-[10px] text-slate-500 flex items-center justify-between"></div>
 
-      {/* Hidden Off-Screen Drag Previews */}
+      {/* Hidden Off-Screen Drag Previews for Desktop HTML5 DND */}
       <div className="fixed top-0 left-[-9999px] pointer-events-none z-[-100] opacity-90" aria-hidden="true">
         {COMPONENT_DEFINITIONS.map((def) => (
           <NodeDragPreview key={def.type} def={def} />
         ))}
       </div>
+
+      {/* Mobile / Tablet Touch Drag Floating Ghost Preview */}
+      {touchGhost && (
+        <div
+          className={`fixed pointer-events-none z-[9999] -translate-x-1/2 -translate-y-1/2 flex items-center gap-2.5 px-3 py-2 rounded-xl border-2 shadow-2xl backdrop-blur-md transition-all duration-75 ${
+            touchGhost.isOverCanvas
+              ? "bg-slate-900/95 border-emerald-400 shadow-emerald-500/30 scale-105 ring-2 ring-emerald-500/30"
+              : "bg-slate-900/90 border-slate-700 shadow-black/50 opacity-80"
+          }`}
+          style={{
+            left: `${touchGhost.x}px`,
+            top: `${touchGhost.y}px`,
+          }}
+        >
+          <div
+            className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
+              touchGhost.isOverCanvas
+                ? "bg-emerald-950/80 text-emerald-300 border border-emerald-500/40"
+                : "bg-slate-800 text-slate-300"
+            }`}
+          >
+            <ComponentIcon type={touchGhost.type} className="w-5 h-5 drop-shadow-sm" />
+          </div>
+          <div className="flex flex-col pr-1">
+            <span className="text-xs font-bold text-white leading-tight">
+              {touchGhost.name}
+            </span>
+            <span
+              className={`text-[9px] font-mono leading-tight ${
+                touchGhost.isOverCanvas ? "text-emerald-400 font-semibold" : "text-slate-400"
+              }`}
+            >
+              {touchGhost.isOverCanvas ? t("dropToCanvas") : touchGhost.type}
+            </span>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
