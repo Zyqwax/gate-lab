@@ -995,10 +995,13 @@ export const COMPONENT_DEFINITIONS: ComponentDef[] = [
   {
     type: 'REGISTER_8',
     category: 'sequential',
-    name: '8-Bit Register with Load & Clear',
-    nameI18n: { en: '8-Bit Register with Load & Clear', tr: '8-Bit Yüklemeli ve Sıfırlamalı Kütük (Register)' },
-    description: '8-bit synchronous register. CLR=1 resets to 0x00. LOAD=1 loads D on clock edge.',
-    descriptionI18n: { en: '8-bit synchronous register. CLR=1 resets to 0x00. LOAD=1 loads D on clock edge.', tr: '8-bit senkron kütük. CLR=1 anında 0x00 yapar. LOAD=1 iken saat yükselen kenarında D girişini Q çıkışına kaydeder.' },
+    name: '8-Bit Register with Load & Async Clear',
+    nameI18n: { en: '8-Bit Register with Load & Async Clear', tr: 'Asenkron Sıfırlamalı ve Yüklemeli 8-Bit Kütük' },
+    description: '8-bit register with asynchronous active-high clear and synchronous clock-edge load (when CLR=0 and LOAD=1).',
+    descriptionI18n: {
+      en: '8-bit register with asynchronous active-high clear and synchronous clock-edge load (when CLR=0 and LOAD=1).',
+      tr: 'Asenkron aktif-yüksek sıfırlama (CLR=1) ve yükselen saat kenarında senkron yükleme (CLR=0, LOAD=1) yapan 8-bit kütük.',
+    },
     pins: [
       { id: 'd', dir: 'in', label: 'D', width: 8, description: '8-Bit Data Input', descriptionI18n: { en: '8-Bit Data Input', tr: '8-Bit Veri Girişi' } },
       { id: 'clk', dir: 'in', label: 'CLK', width: 1, description: 'Clock Input', descriptionI18n: { en: 'Clock Input', tr: 'Saat Girişi' } },
@@ -1175,6 +1178,39 @@ export const COMPONENT_DEFINITIONS: ComponentDef[] = [
       const bus = normalizeToBus(inputs['in'], 8, 0);
       return { outputs: {}, state: { bus } };
     },
+  },
+  {
+    type: 'BUS_PROBE',
+    category: 'display',
+    name: '8-Bit Bus Probe',
+    nameI18n: { en: '8-Bit Bus Probe', tr: '8-Bit Veri Yolu Probu' },
+    description: 'Compact probe displaying 8-bit bus values in HEX, DEC, or BIN for testing and logic analysis',
+    descriptionI18n: {
+      en: 'Compact probe displaying 8-bit bus values in HEX, DEC, or BIN for testing and logic analysis',
+      tr: 'Test ve zaman analizleri için 8-bitlik veri yolu değerini HEX, DEC veya BIN modunda gösteren prob',
+    },
+    pins: [
+      { id: 'in', dir: 'in', label: 'BUS', width: 8, description: '8-Bit Bus Input', descriptionI18n: { en: '8-Bit Bus Input', tr: '8-Bit Veri Yolu Girişi' } },
+    ],
+    defaultParams: { mode: 'HEX', label: 'PROBE-8' },
+    eval: (inputs) => {
+      const bus = normalizeToBus(inputs['in'], 8, 0);
+      return { outputs: {}, state: { bus } };
+    },
+  },
+  {
+    type: 'LABEL',
+    category: 'io',
+    name: 'Text Annotation Label',
+    nameI18n: { en: 'Text Annotation Label', tr: 'Metin Etiketi / Not' },
+    description: 'Freeform text note on canvas to document signals, buses, and control blocks',
+    descriptionI18n: {
+      en: 'Freeform text note on canvas to document signals, buses, and control blocks',
+      tr: 'Sinyalleri, veri yollarını ve kontrol bloklarını açıklamak için tuval üzerine metin notu ekler',
+    },
+    pins: [],
+    defaultParams: { label: 'LABEL' },
+    eval: () => ({ outputs: {} }),
   },
 ];
 

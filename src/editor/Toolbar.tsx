@@ -35,6 +35,7 @@ import {
   Scissors,
   MousePointer,
   BookOpen,
+  Activity,
 } from "lucide-react";
 import { useTranslation } from "../i18n";
 
@@ -75,6 +76,8 @@ export const Toolbar: React.FC<ToolbarProps> = ({
     toggleMinimap,
     editorMode,
     setEditorMode,
+    isAnalyzerOpen,
+    toggleAnalyzer,
   } = useCircuitStore();
 
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -388,6 +391,20 @@ export const Toolbar: React.FC<ToolbarProps> = ({
         >
           <TableProperties className="w-3.5 h-3.5" />
           <span className="hidden md:inline">{t("truthTable")}</span>
+        </button>
+
+        {/* Logic Analyzer Waveform Panel Toggle */}
+        <button
+          onClick={toggleAnalyzer}
+          className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg border text-xs font-semibold transition-colors cursor-pointer ${
+            isAnalyzerOpen
+              ? "bg-sky-950/80 hover:bg-sky-900 border-sky-600/70 text-sky-300 shadow-sm"
+              : "bg-slate-800/80 hover:bg-slate-700 border-slate-700/60 text-slate-300"
+          }`}
+          title={locale === 'tr' ? 'Lojik Analizör & Zaman Diyagramı' : 'Logic Analyzer & Waveforms'}
+        >
+          <Activity className={`w-3.5 h-3.5 ${isAnalyzerOpen ? 'text-sky-400 animate-pulse' : 'text-slate-400'}`} />
+          <span className="hidden md:inline">{locale === 'tr' ? 'Analizör' : 'Analyzer'}</span>
         </button>
 
         {/* Docs & Tutorials link (opens in new tab) */}

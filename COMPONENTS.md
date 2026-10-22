@@ -436,11 +436,11 @@ GateLab, çok bitli veri yollarını (8-Bit bus) birinci sınıf vatandaş (firs
 - **Girişler:** `d`, `clk`, `en`
 - **Çıkışlar:** `q`, `qbar`
 
-### 9.3. 8-Bit Yüklemeli ve Sıfırlamalı Kütük (`REGISTER_8`)
+### 9.3. 8-Bit Yüklemeli ve Asenkron Sıfırlamalı Kütük (`REGISTER_8`)
 - **Kategori:** Ardışıl / Hafıza (`sequential`)
-- **Açıklama:** Tam senkron 8-bit saklama kütüğü (Accumulator Register).
-  - `CLR=1`: Asenkron anında sıfırlama ($Q \leftarrow 0\text{x}00$).
-  - `LOAD=1`: Saat darbesinin yükselen kenarında ($0 \rightarrow 1$) $D[7:0]$ verisi $Q[7:0]$'a aktarılır.
+- **Açıklama:** Asenkron sıfırlamalı ve senkron yüklemeli 8-bit saklama kütüğü (Accumulator Register).
+  - `CLR=1`: Asenkron anında sıfırlama ($Q \leftarrow 0\text{x}00$) — saat darbesinden bağımsızdır.
+  - `LOAD=1`: Saat darbesinin yükselen kenarında ($0 \rightarrow 1$) ve `CLR=0` iken $D[7:0]$ verisi $Q[7:0]$'a aktarılır.
   - `LOAD=0`: Saat darbesinde dahi eski değer korunur.
 - **Girişler:** `d` (8-Bit Bus), `clk`, `load`, `clr`
 - **Çıkış:** `q` (8-Bit Bus)
@@ -493,3 +493,25 @@ GateLab, çok bitli veri yollarını (8-Bit bus) birinci sınıf vatandaş (firs
 - **Kategori:** Gösterge (`display`)
 - **Açıklama:** 8-bitlik veri yolunun her bir bitini ayrı ayrı yanan 8 adet optik LED sütunu olarak görselleştirir.
 - **Giriş:** `in` (8-Bit Bus)
+
+### 11.6. 8-Bit Veri Yolu Probu (`BUS_PROBE`)
+- **Kategori:** Gösterge (`display`)
+- **Açıklama:** Test ve analiz amaçlı kompakt 8-bit veri yolu göstergesi. Değerleri HEX, DEC veya BIN modunda gösterir. Lojik Analizöre tek tıkla bağlanabilir.
+- **Giriş:** `in` (8-Bit Bus)
+
+### 11.7. Metin Etiketi / Not (`LABEL`)
+- **Kategori:** Giriş & Açıklama (`io`)
+- **Açıklama:** Sinyalleri, veri yollarını (`ACC_BUS`, `DATA_IN`) ve kontrol bloklarını adlandırmak için tuval üzerine metin notu ekler. Giriş/çıkış pini yoktur.
+
+---
+
+## 12. Test, Ölçüm ve Zamanlama Araçları (Analysis & Waveform Tools)
+
+### 12.1. Lojik Analizör ve Dalga Formu Motoru (`Logic Analyzer`)
+- **Açıklama:** Tuvalin altında açılabilen sanal osiloskop / lojik analizör paneli. Akümülatör ve ardışıl mantık devrelerindeki sinyal geçişlerini zaman ekseninde görselleştirir.
+- **Önemli Özellikler:**
+  - **Ayrık Simülasyon Zamanı (`steadyStateTick`):** Örnekleme yalnızca devre kararlı duruma ulaştığında (steady state) yapılır; ara netlist adımlarındaki geçici glitch'ler filtrelenir.
+  - **3-Mask Generic Değer Temsili:** `{ value, xMask, zMask }` yapısıyla 1-bit veya çok bitli veri yollarında kısmi belirsizlikler (`0x0X`, `0xX5`, `0xZZ`) tam doğrulukla saklanır ve çizilir.
+  - **VCD Değer Değişimi & `baseSample`:** Yalnızca değer değiştiğinde geçiş kaydedilir. Sabit kapasiteli (256 geçiş) tampon dolup eski kayıtlar silindiğinde son değer `baseSample` alanında korunarak pencere başında veri kaybı önlenir.
+  - **GTKWave / ModelSim Tarzı Çizim:** 1-bit hatlar için kare dalga, çok bitli hatlar için heksagonal veri yolu zarfları (`< 0x05 >`) ve fare zaman imleci (`t = X`).
+

@@ -68,8 +68,8 @@ export const DisplayNode: React.FC<NodeProps> = ({ id, data, selected }) => {
   const hexValue = decimalValue.toString(16).toUpperCase();
   const binStr = `${b3}${b2}${b1}${b0}`;
 
-  // 8-Bit Bus Display state (BYTE_DISPLAY & LED_BAR_8)
-  const isBusInput = compType === 'BYTE_DISPLAY' || compType === 'LED_BAR_8';
+  // 8-Bit Bus Display state (BYTE_DISPLAY, LED_BAR_8, and BUS_PROBE)
+  const isBusInput = compType === 'BYTE_DISPLAY' || compType === 'LED_BAR_8' || compType === 'BUS_PROBE';
   const busVal = normalizeToBus(inSignal, 8, 0);
   const byteNumber = busToNumber(busVal);
   const byteHexStr = byteNumber !== null ? byteNumber.toString(16).toUpperCase().padStart(2, '0') : '??';
@@ -85,6 +85,8 @@ export const DisplayNode: React.FC<NodeProps> = ({ id, data, selected }) => {
           ? 'min-w-[190px]'
           : compType === 'LED_BAR_8'
           ? 'min-w-[220px]'
+          : compType === 'BUS_PROBE'
+          ? 'min-w-[140px]'
           : 'min-w-[110px]'
       } ${
         selected
@@ -262,6 +264,23 @@ export const DisplayNode: React.FC<NodeProps> = ({ id, data, selected }) => {
               </span>
               <span className="px-1.5 py-0.5 rounded bg-slate-900 border border-slate-800 text-slate-400">
                 BIN: {byteBinStr}
+              </span>
+            </div>
+          </div>
+        )}
+
+        {/* 8-Bit Bus Probe (Compact readout for testing & Logic Analyzer) */}
+        {compType === 'BUS_PROBE' && (
+          <div className="flex flex-col items-center justify-center py-0.5">
+            <span
+              className="font-mono text-2xl font-black tracking-wider text-sky-400"
+              style={{ textShadow: '0 0 12px rgba(56, 189, 248, 0.4)' }}
+            >
+              {byteNumber !== null ? (params.mode === 'DEC' ? byteDecStr : params.mode === 'BIN' ? byteBinStr : `0x${byteHexStr}`) : '??'}
+            </span>
+            <div className="flex items-center gap-1.5 mt-1 text-[9px] font-mono text-slate-400">
+              <span className="px-1.5 py-0.2 rounded bg-slate-950 border border-slate-800">
+                {params.mode === 'DEC' ? `0x${byteHexStr}` : `DEC: ${byteDecStr}`}
               </span>
             </div>
           </div>

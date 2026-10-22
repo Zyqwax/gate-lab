@@ -4,6 +4,7 @@ import { defaultSimulator } from '../engine/simulator';
 import { getComponentDef, getComponentPins } from '../components-lib/registry';
 import { TEMPLATES } from '../templates/circuits';
 import { saveCircuit } from '../lib/circuitStorage';
+import { WaveformEngine, WaveformChannel, signalToSample } from '../engine/waveform';
 
 export type EditorMode = 'movement' | 'cut';
 
@@ -45,6 +46,24 @@ export interface CircuitState {
   showMinimap: boolean;
   toggleMinimap: () => void;
   setMinimap: (show: boolean) => void;
+
+  // Logic Analyzer & Waveform Timing
+  isAnalyzerOpen: boolean;
+  toggleAnalyzer: () => void;
+  setAnalyzerOpen: (open: boolean) => void;
+  waveformEngine: WaveformEngine;
+  waveformTick: number;
+  addWaveformChannel: (options: {
+    id: string;
+    name: string;
+    width?: number;
+    color?: string;
+    format?: 'HEX' | 'DEC' | 'BIN';
+    capacity?: number;
+  }) => void;
+  removeWaveformChannel: (id: string) => void;
+  clearWaveform: () => void;
+  toggleWaveformRecording: () => void;
 
   // Actions
   setProject: (id: string, name: string, model: CircuitModel) => void;
@@ -96,6 +115,44 @@ const getInitialBoolPref = (key: string, defaultValue: boolean): boolean => {
   } catch {
     return defaultValue;
   }
+};
+
+const globalWaveformEngine = new WaveformEngine();
+
+const sampleWaveform = (
+  simResult: SimulationResult,
+  engine: WaveformEngine,
+  components: ComponentInstance[],
+  manualTick?: number
+) => {
+  if (!engine.isRecording) return;
+  const channels = engine.getAllChannels();
+  if (channels.length === 0) return;
+
+  const signals: Record<string, any> = {};
+  for (const ch of channels) {
+    let pinKey = ch.id;
+    if (pinKey.startsWith('comp:')) pinKey = pinKey.substring(5);
+
+    if (simResult.pinValues[pinKey] !== undefined) {
+      signals[ch.id] = simResult.pinValues[pinKey];
+    } else {
+      const [compId, pinId] = pinKey.split(':');
+      if (pinId && simResult.pinValues[`${compId}:${pinId}`] !== undefined) {
+        signals[ch.id] = simResult.pinValues[`${compId}:${pinId}`];
+      } else if (simResult.pinValues[`${compId}:out`] !== undefined) {
+        signals[ch.id] = simResult.pinValues[`${compId}:out`];
+      } else if (simResult.pinValues[`${compId}:q`] !== undefined) {
+        signals[ch.id] = simResult.pinValues[`${compId}:q`];
+      } else if (simResult.pinValues[`${compId}:s`] !== undefined) {
+        signals[ch.id] = simResult.pinValues[`${compId}:s`];
+      } else if (simResult.pinValues[`${compId}:in`] !== undefined) {
+        signals[ch.id] = simResult.pinValues[`${compId}:in`];
+      }
+    }
+  }
+
+  engine.step(signals, manualTick);
 };
 
 export const useCircuitStore = create<CircuitState>((set, get) => {
@@ -184,6 +241,40 @@ export const useCircuitStore = create<CircuitState>((set, get) => {
     setMinimap: (show: boolean) => {
       try { localStorage.setItem('gatelab_pref_minimap', String(show)); } catch {}
       set({ showMinimap: show });
+    },
+
+    isAnalyzerOpen: getInitialBoolPref('gatelab_pref_analyzer', false),
+    toggleAnalyzer: () => {
+      set((state) => {
+        const next = !state.isAnalyzerOpen;
+        try { localStorage.setItem('gatelab_pref_analyzer', String(next)); } catch {}
+        return { isAnalyzerOpen: next };
+      });
+    },
+    setAnalyzerOpen: (open: boolean) => {
+      try { localStorage.setItem('gatelab_pref_analyzer', String(open)); } catch {}
+      set({ isAnalyzerOpen: open });
+    },
+
+    waveformEngine: globalWaveformEngine,
+    waveformTick: 0,
+    addWaveformChannel: (options) => {
+      globalWaveformEngine.addChannel(options);
+      const { simResult, components } = get();
+      sampleWaveform(simResult, globalWaveformEngine, components, globalWaveformEngine.tick);
+      set({ waveformTick: globalWaveformEngine.tick });
+    },
+    removeWaveformChannel: (id) => {
+      globalWaveformEngine.removeChannel(id);
+      set({ waveformTick: globalWaveformEngine.tick });
+    },
+    clearWaveform: () => {
+      globalWaveformEngine.clear();
+      set({ waveformTick: globalWaveformEngine.tick });
+    },
+    toggleWaveformRecording: () => {
+      globalWaveformEngine.setRecording(!globalWaveformEngine.isRecording);
+      set({ waveformTick: globalWaveformEngine.tick });
     },
 
     editorMode: 'movement',
@@ -431,7 +522,8 @@ export const useCircuitStore = create<CircuitState>((set, get) => {
           return c;
         });
         const simResult = runSim(components, state.wires, state.simResult.componentStates);
-        return { components, simResult };
+        sampleWaveform(simResult, globalWaveformEngine, components);
+        return { components, simResult, waveformTick: globalWaveformEngine.tick };
       });
     },
 
@@ -447,7 +539,8 @@ export const useCircuitStore = create<CircuitState>((set, get) => {
           return c;
         });
         const simResult = runSim(components, state.wires, state.simResult.componentStates);
-        return { components, simResult };
+        sampleWaveform(simResult, globalWaveformEngine, components);
+        return { components, simResult, waveformTick: globalWaveformEngine.tick };
       });
     },
 
@@ -468,10 +561,13 @@ export const useCircuitStore = create<CircuitState>((set, get) => {
       });
 
       const newSim = runSim(updatedComponents, wires, simResult.componentStates);
+      const nextTick = stepCount + 1;
+      sampleWaveform(newSim, globalWaveformEngine, updatedComponents, nextTick);
       set({
         components: updatedComponents,
         simResult: newSim,
-        stepCount: stepCount + 1,
+        stepCount: nextTick,
+        waveformTick: globalWaveformEngine.tick,
       });
     },
 
@@ -499,10 +595,13 @@ export const useCircuitStore = create<CircuitState>((set, get) => {
 
       if (anyClockToggled) {
         const newSim = runSim(updatedComponents, wires, simResult.componentStates);
+        const nextTick = stepCount + 1;
+        sampleWaveform(newSim, globalWaveformEngine, updatedComponents, nextTick);
         set({
           components: updatedComponents,
           simResult: newSim,
-          stepCount: stepCount + 1,
+          stepCount: nextTick,
+          waveformTick: globalWaveformEngine.tick,
         });
       }
     },
@@ -533,6 +632,7 @@ export const useCircuitStore = create<CircuitState>((set, get) => {
 
     resetSimulation: () => {
       set((state) => {
+        globalWaveformEngine.reset();
         const now = typeof performance !== 'undefined' ? performance.now() : Date.now();
         const components = state.components.map((c) => {
           const def = getComponentDef(c.type);
@@ -551,7 +651,8 @@ export const useCircuitStore = create<CircuitState>((set, get) => {
           };
         });
         const simResult = runSim(components, state.wires);
-        return { components, simResult, stepCount: 0 };
+        sampleWaveform(simResult, globalWaveformEngine, components, 0);
+        return { components, simResult, stepCount: 0, waveformTick: 0 };
       });
     },
 

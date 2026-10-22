@@ -9,6 +9,23 @@ export const IONode: React.FC<NodeProps> = ({ id, data, selected }) => {
   const params = (data?.params as any) || {};
   const label = params.label || compType;
 
+  // Freeform Text Annotation on Canvas
+  if (compType === 'LABEL') {
+    return (
+      <div
+        className={`px-3 py-1.5 rounded-lg border select-none transition-all ${
+          selected
+            ? 'border-sky-400 bg-slate-900/90 ring-2 ring-sky-500/30'
+            : 'border-slate-800/80 bg-slate-950/80 hover:border-slate-700'
+        }`}
+      >
+        <span className="text-xs font-mono font-bold tracking-wide text-slate-200">
+          {label}
+        </span>
+      </div>
+    );
+  }
+
   const toggleSwitch = useCircuitStore((state) => state.toggleSwitch);
   const setButtonPressed = useCircuitStore((state) => state.setButtonPressed);
   const updateComponentParams = useCircuitStore((state) => state.updateComponentParams);

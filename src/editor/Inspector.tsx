@@ -4,7 +4,7 @@ import React from 'react';
 import { useCircuitStore } from '../store/circuitStore';
 import { getComponentDef, getLocalizedComponentDef } from '../components-lib/registry';
 import { useTranslation } from '../i18n';
-import { Settings, Trash2, Tag, Palette as PaletteIcon, X, Sliders } from 'lucide-react';
+import { Settings, Trash2, Tag, Palette as PaletteIcon, X, Sliders, Activity } from 'lucide-react';
 
 interface InspectorProps {
   onClose?: () => void;
@@ -16,6 +16,8 @@ export const Inspector: React.FC<InspectorProps> = ({ onClose }) => {
   const components = useCircuitStore((state) => state.components);
   const updateComponentParams = useCircuitStore((state) => state.updateComponentParams);
   const removeComponent = useCircuitStore((state) => state.removeComponent);
+  const addWaveformChannel = useCircuitStore((state) => state.addWaveformChannel);
+  const setAnalyzerOpen = useCircuitStore((state) => state.setAnalyzerOpen);
 
   const comp = selectedId ? components.find((c) => c.id === selectedId) : null;
   const rawDef = comp ? getComponentDef(comp.type) : null;
@@ -178,8 +180,8 @@ export const Inspector: React.FC<InspectorProps> = ({ onClose }) => {
               </div>
             )}
 
-            {/* 8-Bit Byte Display Mode Selector */}
-            {comp.type === 'BYTE_DISPLAY' && (
+            {/* 8-Bit Byte Display & Bus Probe Mode Selector */}
+            {(comp.type === 'BYTE_DISPLAY' || comp.type === 'BUS_PROBE') && (
               <div>
                 <label className="text-[11px] font-medium text-slate-400 mb-1.5 block">
                   {t('displayMode')}
@@ -251,6 +253,44 @@ export const Inspector: React.FC<InspectorProps> = ({ onClose }) => {
               </div>
             )}
           </div>
+
+          {/* Add to Logic Analyzer Action Button */}
+          {comp && comp.type !== 'LABEL' && (
+            <div className="pt-2">
+              <button
+                type="button"
+                onClick={() => {
+                  const label = params.label || comp.type;
+                  const isBus =
+                    comp.type === 'REGISTER_8' ||
+                    comp.type === 'ADDER_8' ||
+                    comp.type === 'BUS_CONST' ||
+                    comp.type === 'BYTE_INPUT' ||
+                    comp.type === 'BYTE_DISPLAY' ||
+                    comp.type === 'BUS_PROBE' ||
+                    comp.type === 'DIP_SWITCH_8';
+                  const pinSuffix =
+                    comp.type === 'REGISTER_8'
+                      ? 'q'
+                      : comp.type === 'ADDER_8'
+                      ? 's'
+                      : comp.type === 'PROBE' || comp.type === 'BUS_PROBE' || comp.type === 'BYTE_DISPLAY'
+                      ? 'in'
+                      : 'out';
+                  addWaveformChannel({
+                    id: `comp:${comp.id}:${pinSuffix}`,
+                    name: `${label}${isBus ? '[7:0]' : ''}`,
+                    width: isBus ? 8 : 1,
+                  });
+                  setAnalyzerOpen(true);
+                }}
+                className="w-full flex items-center justify-center gap-1.5 py-1.5 rounded-xl bg-sky-950/60 hover:bg-sky-900/80 border border-sky-700/60 text-sky-300 text-xs font-semibold transition-colors cursor-pointer shadow-sm"
+              >
+                <Activity className="w-3.5 h-3.5 text-sky-400" />
+                <span>{locale === 'tr' ? 'Lojik Analizöre Ekle' : 'Add to Logic Analyzer'}</span>
+              </button>
+            </div>
+          )}
 
           {/* Delete button */}
           <div className="pt-3 border-t border-slate-800">

@@ -5,6 +5,7 @@ import { Palette } from './editor/Palette';
 import { Canvas } from './editor/Canvas';
 import { Toolbar } from './editor/Toolbar';
 import { Inspector } from './editor/Inspector';
+import { LogicAnalyzer } from './editor/LogicAnalyzer';
 import { TruthTableModal } from './panels/TruthTableModal';
 import { WelcomeModal } from './panels/WelcomeModal';
 import { useCircuitStore } from './store/circuitStore';
@@ -102,9 +103,12 @@ export const App: React.FC = () => {
           </button>
         )}
 
-        {/* Center Interactive Circuit Canvas */}
-        <main className="flex-1 h-full relative overflow-hidden bg-slate-950">
-          <Canvas />
+        {/* Center Interactive Circuit Canvas & Bottom Logic Analyzer */}
+        <main className="flex-1 h-full relative overflow-hidden bg-slate-950 flex flex-col">
+          <div className="flex-1 relative overflow-hidden">
+            <Canvas />
+          </div>
+          <LogicAnalyzer />
         </main>
 
         {/* Small floating pill to expand right inspector when closed */}
