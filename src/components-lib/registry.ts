@@ -1,5 +1,14 @@
 import { ComponentDef, PinDef } from '../engine/types';
-import { Signal, signalToBoolean, booleanToSignal } from '../engine/signal';
+import {
+  Signal,
+  BitSignal,
+  signalToBoolean,
+  booleanToSignal,
+  normalizeToBit,
+  normalizeToBus,
+  numberToBus,
+  busToNumber,
+} from '../engine/signal';
 import { Locale } from '../i18n/translations';
 
 /**
@@ -718,6 +727,447 @@ export const COMPONENT_DEFINITIONS: ComponentDef[] = [
         },
         state: { q },
       };
+    },
+  },
+
+  // ================= BUS / ROUTING =================
+  {
+    type: 'BUS_SPLIT',
+    category: 'bus',
+    name: 'Bus Splitter (8-Bit)',
+    nameI18n: { en: 'Bus Splitter (8-Bit)', tr: 'Veri Yolu Ayırıcı (8-Bit)' },
+    description: 'Splits 8-bit bus into 8 single-bit lines (OUT0 = LSB)',
+    descriptionI18n: { en: 'Splits 8-bit bus into 8 single-bit lines (OUT0 = LSB)', tr: '8-bitlik veri yolunu 8 bağımsız tek-bit çıkışına ayırır (OUT0 = LSB)' },
+    pins: [
+      { id: 'in', dir: 'in', label: 'BUS', width: 8, description: '8-Bit Bus Input', descriptionI18n: { en: '8-Bit Bus Input', tr: '8-Bit Veri Yolu Girişi' } },
+      ...Array.from({ length: 8 }, (_, i) => ({
+        id: `out${i}`,
+        dir: 'out' as const,
+        label: `${i}`,
+        width: 1,
+        description: `Bit ${i} Output`,
+        descriptionI18n: { en: `Bit ${i} Output`, tr: `Bit ${i} Çıkışı` },
+      })),
+    ],
+    defaultParams: { label: 'SPLIT-8' },
+    eval: (inputs) => {
+      const bus = normalizeToBus(inputs['in'], 8, 'Z');
+      const outputs: Record<string, Signal> = {};
+      for (let i = 0; i < 8; i++) {
+        outputs[`out${i}`] = bus[i] ?? 'Z';
+      }
+      return { outputs };
+    },
+  },
+  {
+    type: 'BUS_MERGE',
+    category: 'bus',
+    name: 'Bus Merger (8-Bit)',
+    nameI18n: { en: 'Bus Merger (8-Bit)', tr: 'Veri Yolu Birleştirici (8-Bit)' },
+    description: 'Merges 8 single-bit lines into one 8-bit bus (IN0 = LSB)',
+    descriptionI18n: { en: 'Merges 8 single-bit lines into one 8-bit bus (IN0 = LSB)', tr: '8 adet tek-bit giriş hattını tek bir 8-bitlik veri yolunda birleştirir (IN0 = LSB)' },
+    pins: [
+      ...Array.from({ length: 8 }, (_, i) => ({
+        id: `in${i}`,
+        dir: 'in' as const,
+        label: `${i}`,
+        width: 1,
+        description: `Bit ${i} Input`,
+        descriptionI18n: { en: `Bit ${i} Input`, tr: `Bit ${i} Girişi` },
+      })),
+      { id: 'out', dir: 'out', label: 'BUS', width: 8, description: '8-Bit Bus Output', descriptionI18n: { en: '8-Bit Bus Output', tr: '8-Bit Veri Yolu Çıkışı' } },
+    ],
+    defaultParams: { label: 'MERGE-8' },
+    eval: (inputs) => {
+      const bus: BitSignal[] = [];
+      for (let i = 0; i < 8; i++) {
+        bus.push(normalizeToBit(inputs[`in${i}`], 0));
+      }
+      return { outputs: { out: bus } };
+    },
+  },
+  {
+    type: 'BUS_CONST',
+    category: 'bus',
+    name: 'Constant 8-Bit Bus',
+    nameI18n: { en: 'Constant 8-Bit Bus', tr: 'Sabit 8-Bit Veri Yolu' },
+    description: 'Outputs constant 8-bit value (configurable in hex/dec)',
+    descriptionI18n: { en: 'Outputs constant 8-bit value (configurable in hex/dec)', tr: 'Sürekli sabit 8-bitlik değer (0-255 / 0x00-0xFF) üretir' },
+    pins: [
+      { id: 'out', dir: 'out', label: 'BUS', width: 8, description: '8-Bit Bus Output', descriptionI18n: { en: '8-Bit Bus Output', tr: '8-Bit Veri Yolu Çıkışı' } },
+    ],
+    defaultParams: { value: 0, label: '0x00' },
+    eval: (_inputs, _state, params) => {
+      const val = Number(params?.value) || 0;
+      return { outputs: { out: numberToBus(val, 8) } };
+    },
+  },
+
+  // ================= MULTIPLEXERS & DEMULTIPLEXERS =================
+  {
+    type: 'MUX_2',
+    category: 'mux',
+    name: '2:1 Multiplexer (1-Bit)',
+    nameI18n: { en: '2:1 Multiplexer (1-Bit)', tr: '2:1 Çoklayıcı (1-Bit Mux)' },
+    description: 'Selects between D0 (SEL=0) and D1 (SEL=1)',
+    descriptionI18n: { en: 'Selects between D0 (SEL=0) and D1 (SEL=1)', tr: 'Seçim sinyaline göre D0 (SEL=0) veya D1 (SEL=1) girişini çıkışa aktarır' },
+    pins: [
+      { id: 'd0', dir: 'in', label: 'D0', description: 'Data Input 0', descriptionI18n: { en: 'Data Input 0', tr: 'Veri Girişi 0' } },
+      { id: 'd1', dir: 'in', label: 'D1', description: 'Data Input 1', descriptionI18n: { en: 'Data Input 1', tr: 'Veri Girişi 1' } },
+      { id: 'sel', dir: 'in', label: 'SEL', description: 'Select Input', descriptionI18n: { en: 'Select Input', tr: 'Seçim Girişi' } },
+      { id: 'out', dir: 'out', label: 'Y', description: 'Mux Output', descriptionI18n: { en: 'Mux Output', tr: 'Mux Çıkışı' } },
+    ],
+    defaultParams: { label: 'MUX 2:1' },
+    eval: (inputs) => {
+      const sel = inputs['sel'];
+      const d0 = inputs['d0'] ?? 'Z';
+      const d1 = inputs['d1'] ?? 'Z';
+      if (sel === 1) return { outputs: { out: d1 } };
+      if (sel === 0) return { outputs: { out: d0 } };
+      if (d0 === d1) return { outputs: { out: d0 } };
+      return { outputs: { out: 'X' } };
+    },
+  },
+  {
+    type: 'MUX_2x8',
+    category: 'mux',
+    name: '2:1 Bus Multiplexer (8-Bit)',
+    nameI18n: { en: '2:1 Bus Multiplexer (8-Bit)', tr: '2:1 Veri Yolu Çoklayıcı (8-Bit Bus Mux)' },
+    description: 'Selects between 8-bit bus D0 (SEL=0) and D1 (SEL=1)',
+    descriptionI18n: { en: 'Selects between 8-bit bus D0 (SEL=0) and D1 (SEL=1)', tr: '8-bitlik iki veri yolundan birini seçer: SEL=0 ise D0, SEL=1 ise D1' },
+    pins: [
+      { id: 'd0', dir: 'in', label: 'D0', width: 8, description: '8-Bit Input 0', descriptionI18n: { en: '8-Bit Input 0', tr: '8-Bit Giriş 0' } },
+      { id: 'd1', dir: 'in', label: 'D1', width: 8, description: '8-Bit Input 1', descriptionI18n: { en: '8-Bit Input 1', tr: '8-Bit Giriş 1' } },
+      { id: 'sel', dir: 'in', label: 'SEL', width: 1, description: 'Select Control', descriptionI18n: { en: 'Select Control', tr: 'Seçim Kontrolü' } },
+      { id: 'out', dir: 'out', label: 'Y', width: 8, description: '8-Bit Output', descriptionI18n: { en: '8-Bit Output', tr: '8-Bit Çıkış' } },
+    ],
+    defaultParams: { label: 'MUX 2x8' },
+    eval: (inputs) => {
+      const sel = inputs['sel'];
+      const d0 = normalizeToBus(inputs['d0'], 8, 'Z');
+      const d1 = normalizeToBus(inputs['d1'], 8, 'Z');
+      if (sel === 1) return { outputs: { out: d1 } };
+      if (sel === 0) return { outputs: { out: d0 } };
+      const out: BitSignal[] = [];
+      for (let i = 0; i < 8; i++) {
+        out.push(d0[i] === d1[i] ? d0[i] : 'X');
+      }
+      return { outputs: { out } };
+    },
+  },
+  {
+    type: 'MUX_4',
+    category: 'mux',
+    name: '4:1 Multiplexer (1-Bit)',
+    nameI18n: { en: '4:1 Multiplexer (1-Bit)', tr: '4:1 Çoklayıcı (4:1 Mux)' },
+    description: 'Selects between D0..D3 with 2-bit select (S1, S0)',
+    descriptionI18n: { en: 'Selects between D0..D3 with 2-bit select (S1, S0)', tr: '2-bit seçim hattı (S1, S0) ile 4 girişten birini çıkışa aktarır' },
+    pins: [
+      { id: 'd0', dir: 'in', label: 'D0' },
+      { id: 'd1', dir: 'in', label: 'D1' },
+      { id: 'd2', dir: 'in', label: 'D2' },
+      { id: 'd3', dir: 'in', label: 'D3' },
+      { id: 's0', dir: 'in', label: 'S0' },
+      { id: 's1', dir: 'in', label: 'S1' },
+      { id: 'out', dir: 'out', label: 'Y' },
+    ],
+    defaultParams: { label: 'MUX 4:1' },
+    eval: (inputs) => {
+      const s0 = inputs['s0'];
+      const s1 = inputs['s1'];
+      if (s0 === 'X' || s0 === 'Z' || s1 === 'X' || s1 === 'Z') {
+        return { outputs: { out: 'X' } };
+      }
+      const idx = (s1 === 1 ? 2 : 0) + (s0 === 1 ? 1 : 0);
+      return { outputs: { out: inputs[`d${idx}`] ?? 'Z' } };
+    },
+  },
+  {
+    type: 'MUX_8',
+    category: 'mux',
+    name: '8:1 Multiplexer (1-Bit)',
+    nameI18n: { en: '8:1 Multiplexer (1-Bit)', tr: '8:1 Çoklayıcı (8:1 Mux)' },
+    description: 'Selects between D0..D7 with 3-bit select (S2, S1, S0)',
+    descriptionI18n: { en: 'Selects between D0..D7 with 3-bit select (S2, S1, S0)', tr: '3-bit seçim hattı (S2, S1, S0) ile 8 girişten birini çıkışa aktarır' },
+    pins: [
+      ...Array.from({ length: 8 }, (_, i) => ({ id: `d${i}`, dir: 'in' as const, label: `D${i}` })),
+      { id: 's0', dir: 'in', label: 'S0' },
+      { id: 's1', dir: 'in', label: 'S1' },
+      { id: 's2', dir: 'in', label: 'S2' },
+      { id: 'out', dir: 'out', label: 'Y' },
+    ],
+    defaultParams: { label: 'MUX 8:1' },
+    eval: (inputs) => {
+      const s0 = inputs['s0'];
+      const s1 = inputs['s1'];
+      const s2 = inputs['s2'];
+      if (s0 === 'X' || s0 === 'Z' || s1 === 'X' || s1 === 'Z' || s2 === 'X' || s2 === 'Z') {
+        return { outputs: { out: 'X' } };
+      }
+      const idx = (s2 === 1 ? 4 : 0) + (s1 === 1 ? 2 : 0) + (s0 === 1 ? 1 : 0);
+      return { outputs: { out: inputs[`d${idx}`] ?? 'Z' } };
+    },
+  },
+  {
+    type: 'DEMUX_1_2',
+    category: 'mux',
+    name: '1:2 Demultiplexer',
+    nameI18n: { en: '1:2 Demultiplexer', tr: '1:2 Dağıtıcı (Demux)' },
+    description: 'Routes IN to Y0 (SEL=0) or Y1 (SEL=1)',
+    descriptionI18n: { en: 'Routes IN to Y0 (SEL=0) or Y1 (SEL=1)', tr: 'Giriş sinyalini SEL=0 iken Y0 çıkışına, SEL=1 iken Y1 çıkışına iletir' },
+    pins: [
+      { id: 'in', dir: 'in', label: 'IN' },
+      { id: 'sel', dir: 'in', label: 'SEL' },
+      { id: 'out0', dir: 'out', label: 'Y0' },
+      { id: 'out1', dir: 'out', label: 'Y1' },
+    ],
+    defaultParams: { label: 'DEMUX 1:2' },
+    eval: (inputs) => {
+      const sel = inputs['sel'];
+      const val = inputs['in'] ?? 0;
+      if (sel === 0) return { outputs: { out0: val, out1: 0 } };
+      if (sel === 1) return { outputs: { out0: 0, out1: val } };
+      return { outputs: { out0: 'X', out1: 'X' } };
+    },
+  },
+
+  // ================= REGISTERS & FLIP-FLOPS =================
+  {
+    type: 'D_FF_RESET',
+    category: 'sequential',
+    name: 'D Flip-Flop with Async Clear',
+    nameI18n: { en: 'D Flip-Flop with Async Clear', tr: 'Asenkron Sıfırlamalı D Flip-Flop' },
+    description: 'D-FF with asynchronous CLR (CLR=1 resets Q to 0 immediately)',
+    descriptionI18n: { en: 'D-FF with asynchronous CLR (CLR=1 resets Q to 0 immediately)', tr: 'Asenkron CLR girişli D-FF (CLR=1 iken saatten bağımsız anında sıfırlar)' },
+    pins: [
+      { id: 'd', dir: 'in', label: 'D' },
+      { id: 'clk', dir: 'in', label: 'CLK' },
+      { id: 'clr', dir: 'in', label: 'CLR' },
+      { id: 'q', dir: 'out', label: 'Q' },
+      { id: 'qbar', dir: 'out', label: 'Q̄' },
+    ],
+    defaultParams: { label: 'D-FF (CLR)' },
+    defaultState: { q: 0, lastClk: 0 },
+    eval: (_inputs, state) => {
+      const q = state?.q ?? 0;
+      return {
+        outputs: {
+          q: q === 1 ? 1 : 0,
+          qbar: q === 1 ? 0 : 1,
+        },
+        state,
+      };
+    },
+  },
+  {
+    type: 'D_FF_ENABLE',
+    category: 'sequential',
+    name: 'D Flip-Flop with Enable',
+    nameI18n: { en: 'D Flip-Flop with Enable', tr: 'Yetkilendirmeli (Enable) D Flip-Flop' },
+    description: 'D-FF that only updates on clock edge when EN=1',
+    descriptionI18n: { en: 'D-FF that only updates on clock edge when EN=1', tr: 'Yalnızca EN=1 iken saat darbesinde güncellenen D-FF' },
+    pins: [
+      { id: 'd', dir: 'in', label: 'D' },
+      { id: 'clk', dir: 'in', label: 'CLK' },
+      { id: 'en', dir: 'in', label: 'EN' },
+      { id: 'q', dir: 'out', label: 'Q' },
+      { id: 'qbar', dir: 'out', label: 'Q̄' },
+    ],
+    defaultParams: { label: 'D-FF (EN)' },
+    defaultState: { q: 0, lastClk: 0 },
+    eval: (_inputs, state) => {
+      const q = state?.q ?? 0;
+      return {
+        outputs: {
+          q: q === 1 ? 1 : 0,
+          qbar: q === 1 ? 0 : 1,
+        },
+        state,
+      };
+    },
+  },
+  {
+    type: 'REGISTER_8',
+    category: 'sequential',
+    name: '8-Bit Register with Load & Clear',
+    nameI18n: { en: '8-Bit Register with Load & Clear', tr: '8-Bit Yüklemeli ve Sıfırlamalı Kütük (Register)' },
+    description: '8-bit synchronous register. CLR=1 resets to 0x00. LOAD=1 loads D on clock edge.',
+    descriptionI18n: { en: '8-bit synchronous register. CLR=1 resets to 0x00. LOAD=1 loads D on clock edge.', tr: '8-bit senkron kütük. CLR=1 anında 0x00 yapar. LOAD=1 iken saat yükselen kenarında D girişini Q çıkışına kaydeder.' },
+    pins: [
+      { id: 'd', dir: 'in', label: 'D', width: 8, description: '8-Bit Data Input', descriptionI18n: { en: '8-Bit Data Input', tr: '8-Bit Veri Girişi' } },
+      { id: 'clk', dir: 'in', label: 'CLK', width: 1, description: 'Clock Input', descriptionI18n: { en: 'Clock Input', tr: 'Saat Girişi' } },
+      { id: 'load', dir: 'in', label: 'LD', width: 1, description: 'Load Enable', descriptionI18n: { en: 'Load Enable', tr: 'Yükleme Yetkilendirme' } },
+      { id: 'clr', dir: 'in', label: 'CLR', width: 1, description: 'Async Clear', descriptionI18n: { en: 'Async Clear', tr: 'Asenkron Sıfırlama' } },
+      { id: 'q', dir: 'out', label: 'Q', width: 8, description: '8-Bit Data Output', descriptionI18n: { en: '8-Bit Data Output', tr: '8-Bit Veri Çıkışı' } },
+    ],
+    defaultParams: { label: 'REG-8' },
+    defaultState: { q: [0, 0, 0, 0, 0, 0, 0, 0], lastClk: 0 },
+    eval: (_inputs, state) => {
+      const q = Array.isArray(state?.q) ? state.q : [0, 0, 0, 0, 0, 0, 0, 0];
+      return {
+        outputs: { q },
+        state,
+      };
+    },
+  },
+
+  // ================= 8-BIT ARITHMETIC =================
+  {
+    type: 'ADDER_8',
+    category: 'arithmetic',
+    name: '8-Bit Full Adder',
+    nameI18n: { en: '8-Bit Full Adder', tr: '8-Bit Tam Toplayıcı' },
+    description: 'Computes S[7:0] = A + B + CIN with Carry-out and Overflow flags',
+    descriptionI18n: { en: 'Computes S[7:0] = A + B + CIN with Carry-out and Overflow flags', tr: 'A ve B 8-bitlik sayılarını CIN ile toplar: S = A + B + CIN. COUT ve OVF bayrakları üretir.' },
+    pins: [
+      { id: 'a', dir: 'in', label: 'A', width: 8, description: '8-Bit Input A', descriptionI18n: { en: '8-Bit Input A', tr: '8-Bit A Girişi' } },
+      { id: 'b', dir: 'in', label: 'B', width: 8, description: '8-Bit Input B', descriptionI18n: { en: '8-Bit Input B', tr: '8-Bit B Girişi' } },
+      { id: 'cin', dir: 'in', label: 'CIN', width: 1, description: 'Carry In', descriptionI18n: { en: 'Carry In', tr: 'Elde Girişi' } },
+      { id: 's', dir: 'out', label: 'S', width: 8, description: '8-Bit Sum Output', descriptionI18n: { en: '8-Bit Sum Output', tr: '8-Bit Toplam Çıkışı' } },
+      { id: 'cout', dir: 'out', label: 'COUT', width: 1, description: 'Carry Out', descriptionI18n: { en: 'Carry Out', tr: 'Elde Çıkışı' } },
+      { id: 'ovf', dir: 'out', label: 'OVF', width: 1, description: 'Signed Overflow', descriptionI18n: { en: 'Signed Overflow', tr: 'İşaretli Taşma Bayrağı' } },
+    ],
+    defaultParams: { label: 'ADDER-8' },
+    eval: (inputs) => {
+      const a = normalizeToBus(inputs['a'], 8, 0);
+      const b = normalizeToBus(inputs['b'], 8, 0);
+      let carry: BitSignal = normalizeToBit(inputs['cin'], 0);
+
+      const s: BitSignal[] = [];
+      let c6: BitSignal = 0;
+      let c7: BitSignal = 0;
+
+      for (let i = 0; i < 8; i++) {
+        const ai = a[i];
+        const bi = b[i];
+        if (ai === 'X' || bi === 'X' || carry === 'X') {
+          s.push('X');
+          carry = 'X';
+        } else {
+          const aBit = ai === 1 ? 1 : 0;
+          const bBit = bi === 1 ? 1 : 0;
+          const cBit = carry === 1 ? 1 : 0;
+          const sum = aBit ^ bBit ^ cBit;
+          const nextCarry = (aBit & bBit) | (cBit & (aBit ^ bBit));
+          s.push(sum === 1 ? 1 : 0);
+          carry = nextCarry === 1 ? 1 : 0;
+        }
+        if (i === 6) c6 = carry;
+        if (i === 7) c7 = carry;
+      }
+
+      let ovf: BitSignal = 'X';
+      if (c6 !== 'X' && c7 !== 'X') {
+        ovf = ((c6 === 1 ? 1 : 0) ^ (c7 === 1 ? 1 : 0)) === 1 ? 1 : 0;
+      }
+
+      return {
+        outputs: {
+          s,
+          cout: carry,
+          ovf,
+        },
+      };
+    },
+  },
+  {
+    type: 'ZERO_DETECT_8',
+    category: 'arithmetic',
+    name: '8-Bit Zero Detector',
+    nameI18n: { en: '8-Bit Zero Detector', tr: '8-Bit Sıfır Algılayıcı' },
+    description: 'Outputs 1 if all 8 bits of input bus are 0',
+    descriptionI18n: { en: 'Outputs 1 if all 8 bits of input bus are 0', tr: '8-bitlik giriş veri yolunun tüm bitleri 0 ise 1 (Zero Flag) üretir' },
+    pins: [
+      { id: 'in', dir: 'in', label: 'IN', width: 8, description: '8-Bit Bus Input', descriptionI18n: { en: '8-Bit Bus Input', tr: '8-Bit Veri Yolu Girişi' } },
+      { id: 'zero', dir: 'out', label: 'Z', width: 1, description: 'Zero Flag Output', descriptionI18n: { en: 'Zero Flag Output', tr: 'Sıfır Bayrağı Çıkışı' } },
+    ],
+    defaultParams: { label: 'ZERO?' },
+    eval: (inputs) => {
+      const bus = normalizeToBus(inputs['in'], 8, 0);
+      if (bus.includes('X')) return { outputs: { zero: 'X' } };
+      const isZero = bus.every((b) => b === 0);
+      return { outputs: { zero: isZero ? 1 : 0 } };
+    },
+  },
+
+  // ================= 8-BIT INPUT & OUTPUT =================
+  {
+    type: 'DIP_SWITCH_8',
+    category: 'io',
+    name: '8-Bit DIP Switch',
+    nameI18n: { en: '8-Bit DIP Switch', tr: '8-Bit DIP Anahtar' },
+    description: '8 independent micro switches outputting an 8-bit bus',
+    descriptionI18n: { en: '8 independent micro switches outputting an 8-bit bus', tr: '8 bağımsız mikro anahtar ile 8-bitlik veri yolu üretir' },
+    pins: [
+      { id: 'out', dir: 'out', label: 'BUS', width: 8, description: '8-Bit Bus Output', descriptionI18n: { en: '8-Bit Bus Output', tr: '8-Bit Veri Yolu Çıkışı' } },
+    ],
+    defaultParams: { bits: [0, 0, 0, 0, 0, 0, 0, 0], label: 'DIP-8' },
+    eval: (_inputs, _state, params) => {
+      const bits = Array.isArray(params?.bits) ? params.bits : [0, 0, 0, 0, 0, 0, 0, 0];
+      return { outputs: { out: bits } };
+    },
+  },
+  {
+    type: 'BYTE_INPUT',
+    category: 'io',
+    name: '8-Bit Byte Input',
+    nameI18n: { en: '8-Bit Byte Input', tr: '8-Bit Sayısal Giriş (Byte In)' },
+    description: 'Numeric 0-255 / 0x00-0xFF input generator',
+    descriptionI18n: { en: 'Numeric 0-255 / 0x00-0xFF input generator', tr: '0-255 / 0x00-0xFF arası sayı girilebilen 8-bit veri üreteci' },
+    pins: [
+      { id: 'out', dir: 'out', label: 'BUS', width: 8, description: '8-Bit Bus Output', descriptionI18n: { en: '8-Bit Bus Output', tr: '8-Bit Veri Yolu Çıkışı' } },
+    ],
+    defaultParams: { value: 0, label: 'Byte In' },
+    eval: (_inputs, _state, params) => {
+      const val = Math.max(0, Math.min(255, Number(params?.value) || 0));
+      return { outputs: { out: numberToBus(val, 8) } };
+    },
+  },
+  {
+    type: 'MANUAL_CLOCK',
+    category: 'io',
+    name: 'Manual Step Clock Button',
+    nameI18n: { en: 'Manual Step Clock Button', tr: 'Manuel Adım Saati Butonu' },
+    description: 'Generates a clean rising edge pulse upon click for single-step debugging',
+    descriptionI18n: { en: 'Generates a clean rising edge pulse upon click for single-step debugging', tr: 'Her basışta tek bir temiz saat darbesi üretir; adım adım hata ayıklama içindir' },
+    pins: [
+      { id: 'out', dir: 'out', label: 'CLK', width: 1, description: 'Clock Pulse Output', descriptionI18n: { en: 'Clock Pulse Output', tr: 'Saat Darbesi Çıkışı' } },
+    ],
+    defaultParams: { high: false, label: 'Step CLK' },
+    eval: (_inputs, _state, params) => ({
+      outputs: { out: params?.high ? 1 : 0 },
+    }),
+  },
+  {
+    type: 'BYTE_DISPLAY',
+    category: 'display',
+    name: '8-Bit Byte Display',
+    nameI18n: { en: '8-Bit Byte Display', tr: '8-Bit Dijital Gösterge' },
+    description: 'Displays 8-bit bus in DEC, HEX, or BIN mode',
+    descriptionI18n: { en: 'Displays 8-bit bus in DEC, HEX, or BIN mode', tr: '8-bitlik veri yolunu DEC (0-255), HEX (0x00-0xFF) veya BIN modunda gösterir' },
+    pins: [
+      { id: 'in', dir: 'in', label: 'BUS', width: 8, description: '8-Bit Bus Input', descriptionI18n: { en: '8-Bit Bus Input', tr: '8-Bit Veri Yolu Girişi' } },
+    ],
+    defaultParams: { mode: 'HEX', label: 'Byte Disp' },
+    eval: (inputs) => {
+      const bus = normalizeToBus(inputs['in'], 8, 0);
+      return { outputs: {}, state: { bus } };
+    },
+  },
+  {
+    type: 'LED_BAR_8',
+    category: 'display',
+    name: '8-Bit LED Bar',
+    nameI18n: { en: '8-Bit LED Bar', tr: '8-Bit LED Çubuğu' },
+    description: 'Displays 8 individual optical LED indicators for each bit',
+    descriptionI18n: { en: 'Displays 8 individual optical LED indicators for each bit', tr: '8 bitlik veri yolunun her bir bitini ayrı ayrı yanan LED çubuğu şeklinde gösterir' },
+    pins: [
+      { id: 'in', dir: 'in', label: 'BUS', width: 8, description: '8-Bit Bus Input', descriptionI18n: { en: '8-Bit Bus Input', tr: '8-Bit Veri Yolu Girişi' } },
+    ],
+    defaultParams: { label: 'LED Bar 8', color: '#10b981' },
+    eval: (inputs) => {
+      const bus = normalizeToBus(inputs['in'], 8, 0);
+      return { outputs: {}, state: { bus } };
     },
   },
 ];

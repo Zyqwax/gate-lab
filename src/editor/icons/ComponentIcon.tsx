@@ -230,6 +230,181 @@ export const ComponentIcon: React.FC<ComponentIconProps> = ({ type, className = 
     );
   }
 
+  // Bus: Splitter
+  if (type === 'BUS_SPLIT') {
+    return (
+      <svg viewBox="0 0 36 32" className={className} fill="none" stroke="currentColor" strokeWidth="1.8">
+        <rect x="3" y="4" width="30" height="24" rx="4" fill="rgba(14, 165, 233, 0.15)" stroke="#0ea5e9" />
+        <line x1="6" y1="16" x2="16" y2="16" stroke="#0ea5e9" strokeWidth="3" />
+        <line x1="16" y1="16" x2="28" y2="10" stroke="#0ea5e9" />
+        <line x1="16" y1="16" x2="28" y2="16" stroke="#0ea5e9" />
+        <line x1="16" y1="16" x2="28" y2="22" stroke="#0ea5e9" />
+      </svg>
+    );
+  }
+
+  // Bus: Merger
+  if (type === 'BUS_MERGE') {
+    return (
+      <svg viewBox="0 0 36 32" className={className} fill="none" stroke="currentColor" strokeWidth="1.8">
+        <rect x="3" y="4" width="30" height="24" rx="4" fill="rgba(14, 165, 233, 0.15)" stroke="#0ea5e9" />
+        <line x1="8" y1="10" x2="20" y2="16" stroke="#0ea5e9" />
+        <line x1="8" y1="16" x2="20" y2="16" stroke="#0ea5e9" />
+        <line x1="8" y1="22" x2="20" y2="16" stroke="#0ea5e9" />
+        <line x1="20" y1="16" x2="30" y2="16" stroke="#0ea5e9" strokeWidth="3" />
+      </svg>
+    );
+  }
+
+  // Bus: Constant Value
+  if (type === 'BUS_CONST') {
+    return (
+      <svg viewBox="0 0 36 32" className={className} fill="none" stroke="currentColor" strokeWidth="1.5">
+        <rect x="3" y="4" width="30" height="24" rx="4" fill="rgba(14, 165, 233, 0.15)" stroke="#0ea5e9" />
+        <text x="18" y="21" fill="#0ea5e9" fontSize="11" fontWeight="bold" fontFamily="monospace" textAnchor="middle">
+          0xFF
+        </text>
+      </svg>
+    );
+  }
+
+  // Multiplexers: MUX 2:1 & MUX 2x8
+  if (type === 'MUX_2' || type === 'MUX_2x8' || type === 'MUX_4' || type === 'MUX_8') {
+    return (
+      <svg viewBox="0 0 36 32" className={className} fill="none" stroke="currentColor" strokeWidth="1.5">
+        <polygon points="6,4 28,10 28,22 6,28" fill="rgba(249, 115, 22, 0.15)" stroke="#f97316" />
+        <text x="17" y="19" fill="#f97316" fontSize="8" fontWeight="bold" fontFamily="monospace" textAnchor="middle">
+          {type === 'MUX_2x8' ? '2x8' : type.replace('MUX_', '')}
+        </text>
+      </svg>
+    );
+  }
+
+  // Demultiplexer: DEMUX 1:2
+  if (type === 'DEMUX_1_2') {
+    return (
+      <svg viewBox="0 0 36 32" className={className} fill="none" stroke="currentColor" strokeWidth="1.5">
+        <polygon points="6,10 28,4 28,28 6,22" fill="rgba(249, 115, 22, 0.15)" stroke="#f97316" />
+        <text x="17" y="19" fill="#f97316" fontSize="8" fontWeight="bold" fontFamily="monospace" textAnchor="middle">
+          1:2
+        </text>
+      </svg>
+    );
+  }
+
+  // Registers & D-FFs
+  if (type === 'D_FF_RESET' || type === 'D_FF_ENABLE' || type === 'REGISTER_8') {
+    return (
+      <svg viewBox="0 0 36 32" className={className} fill="none" stroke="currentColor" strokeWidth="1.5">
+        <rect x="3" y="4" width="30" height="24" rx="4" fill="rgba(99, 102, 241, 0.15)" stroke="#6366f1" />
+        <text x="18" y="20" fill="#6366f1" fontSize="9" fontWeight="bold" fontFamily="monospace" textAnchor="middle">
+          {type === 'REGISTER_8' ? 'REG-8' : 'D-FF'}
+        </text>
+      </svg>
+    );
+  }
+
+  // 8-Bit Arithmetic: Adder & Zero Detect
+  if (type === 'ADDER_8') {
+    return (
+      <svg viewBox="0 0 36 32" className={className} fill="none" stroke="currentColor" strokeWidth="1.5">
+        <rect x="3" y="4" width="30" height="24" rx="4" fill="rgba(168, 85, 247, 0.15)" stroke="#a855f7" />
+        <text x="18" y="16" fill="#a855f7" fontSize="10" fontWeight="bold" fontFamily="monospace" textAnchor="middle">
+          +8
+        </text>
+        <text x="18" y="24" fill="#a855f7" fontSize="7" fontWeight="bold" fontFamily="monospace" textAnchor="middle">
+          ADD
+        </text>
+      </svg>
+    );
+  }
+
+  if (type === 'ZERO_DETECT_8') {
+    return (
+      <svg viewBox="0 0 36 32" className={className} fill="none" stroke="currentColor" strokeWidth="1.5">
+        <rect x="3" y="4" width="30" height="24" rx="4" fill="rgba(168, 85, 247, 0.15)" stroke="#a855f7" />
+        <text x="18" y="20" fill="#a855f7" fontSize="10" fontWeight="bold" fontFamily="monospace" textAnchor="middle">
+          ==0?
+        </text>
+      </svg>
+    );
+  }
+
+  // Input: 8-Bit DIP Switch
+  if (type === 'DIP_SWITCH_8') {
+    return (
+      <svg viewBox="0 0 36 32" className={className} fill="none" stroke="currentColor" strokeWidth="1.5">
+        <rect x="2" y="6" width="32" height="20" rx="3" fill="#020617" stroke="#334155" />
+        {[5, 8.5, 12, 15.5, 19, 22.5, 26, 29.5].map((x, i) => (
+          <rect
+            key={i}
+            x={x}
+            y={i % 2 === 0 ? 9 : 15}
+            width="2.5"
+            height="6"
+            rx="0.5"
+            fill={i % 2 === 0 ? '#10b981' : '#475569'}
+          />
+        ))}
+      </svg>
+    );
+  }
+
+  // Input: Byte Input
+  if (type === 'BYTE_INPUT') {
+    return (
+      <svg viewBox="0 0 36 32" className={className} fill="none" stroke="currentColor" strokeWidth="1.5">
+        <rect x="3" y="4" width="30" height="24" rx="4" fill="rgba(16, 185, 129, 0.15)" stroke="#10b981" />
+        <text x="18" y="20" fill="#10b981" fontSize="10" fontWeight="bold" fontFamily="monospace" textAnchor="middle">
+          [BYTE]
+        </text>
+      </svg>
+    );
+  }
+
+  // Input: Manual Clock
+  if (type === 'MANUAL_CLOCK') {
+    return (
+      <svg viewBox="0 0 32 32" className={className} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <circle cx="16" cy="16" r="12" fill="rgba(56, 189, 248, 0.15)" stroke="#38bdf8" />
+        <path d="M 12 18 L 16 12 L 20 18" stroke="#38bdf8" strokeWidth="2" />
+        <line x1="16" y1="12" x2="16" y2="22" stroke="#38bdf8" strokeWidth="2" />
+      </svg>
+    );
+  }
+
+  // Output: Byte Display
+  if (type === 'BYTE_DISPLAY') {
+    return (
+      <svg viewBox="0 0 36 32" className={className} fill="none" stroke="currentColor" strokeWidth="1.5">
+        <rect x="2" y="4" width="32" height="24" rx="4" fill="#020617" stroke="#10b981" />
+        <text x="18" y="20" fill="#10b981" fontSize="12" fontWeight="black" fontFamily="monospace" textAnchor="middle">
+          0x00
+        </text>
+      </svg>
+    );
+  }
+
+  // Output: 8-Bit LED Bar
+  if (type === 'LED_BAR_8') {
+    return (
+      <svg viewBox="0 0 36 32" className={className} fill="none" stroke="currentColor" strokeWidth="1.5">
+        <rect x="2" y="4" width="32" height="24" rx="3" fill="#020617" stroke="#334155" />
+        {[5, 8.5, 12, 15.5, 19, 22.5, 26, 29.5].map((x, i) => (
+          <rect
+            key={i}
+            x={x}
+            y={8}
+            width="2.5"
+            height="16"
+            rx="0.5"
+            fill={i < 4 ? '#10b981' : '#1e293b'}
+          />
+        ))}
+      </svg>
+    );
+  }
+
   // Default fallback chip
   return (
     <svg viewBox="0 0 32 32" className={className} fill="none" stroke="currentColor" strokeWidth="2">

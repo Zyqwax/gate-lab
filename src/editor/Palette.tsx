@@ -22,6 +22,9 @@ import {
   Eye,
   Binary,
   Layers,
+  Split,
+  GitBranch,
+  Calculator,
   X,
 } from "lucide-react";
 import { ComponentIcon } from "./icons/ComponentIcon";
@@ -214,6 +217,9 @@ export const Palette: React.FC = () => {
     { id: "gate", label: t("catGates"), icon: Cpu },
     { id: "io", label: t("catInputs"), icon: ToggleLeft },
     { id: "display", label: t("catOutputs"), icon: Activity },
+    { id: "bus", label: t("catBus"), icon: GitBranch },
+    { id: "mux", label: t("catMux"), icon: Split },
+    { id: "arithmetic", label: t("catArithmetic"), icon: Calculator },
     { id: "block", label: t("catBlocks"), icon: Binary },
     { id: "templates", label: t("catTemplates"), icon: Sparkles },
   ];
@@ -240,6 +246,24 @@ export const Palette: React.FC = () => {
       name: t("grpOutputs"),
       icon: Eye,
       items: localizedComponents.filter((c) => c.category === "display"),
+    },
+    {
+      id: "bus",
+      name: t("grpBus"),
+      icon: GitBranch,
+      items: localizedComponents.filter((c) => c.category === "bus"),
+    },
+    {
+      id: "mux",
+      name: t("grpMux"),
+      icon: Split,
+      items: localizedComponents.filter((c) => c.category === "mux"),
+    },
+    {
+      id: "arithmetic",
+      name: t("grpArithmetic"),
+      icon: Calculator,
+      items: localizedComponents.filter((c) => c.category === "arithmetic"),
     },
     {
       id: "block",

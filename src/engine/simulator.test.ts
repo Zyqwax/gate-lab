@@ -468,4 +468,161 @@ describe('Logic Circuit Simulator Engine', () => {
     expect(res.pinValues['led:in']).toBe(0);
     expect(res.componentStates['led']?.lit).toBe(false);
   });
+
+  it('evaluates MUX_2 and MUX_2x8 correctly', () => {
+    // 1-Bit Mux test
+    const mux1Circuit: CircuitModel = {
+      version: 1,
+      mode: 'sandbox',
+      components: [
+        { id: 'mux', type: 'MUX_2', x: 0, y: 0, params: {} },
+        { id: 'sw_sel', type: 'SWITCH', x: 0, y: 50, params: { state: 0 } },
+        { id: 'c0', type: 'CONST_LOW', x: 0, y: 100, params: {} },
+        { id: 'c1', type: 'CONST_HIGH', x: 0, y: 150, params: {} },
+      ],
+      wires: [
+        { id: 'w_s', from: { comp: 'sw_sel', pin: 'out' }, to: { comp: 'mux', pin: 'sel' } },
+        { id: 'w_d0', from: { comp: 'c0', pin: 'out' }, to: { comp: 'mux', pin: 'd0' } },
+        { id: 'w_d1', from: { comp: 'c1', pin: 'out' }, to: { comp: 'mux', pin: 'd1' } },
+      ],
+    };
+
+    let res = sim.evaluate(mux1Circuit);
+    expect(res.pinValues['mux:out']).toBe(0); // sel=0 -> d0=0
+
+    mux1Circuit.components[1].params.state = 1;
+    res = sim.evaluate(mux1Circuit);
+    expect(res.pinValues['mux:out']).toBe(1); // sel=1 -> d1=1
+
+    // 8-Bit Bus Mux test
+    const mux8Circuit: CircuitModel = {
+      version: 1,
+      mode: 'sandbox',
+      components: [
+        { id: 'mux8', type: 'MUX_2x8', x: 0, y: 0, params: {} },
+        { id: 'byte0', type: 'BYTE_INPUT', x: 0, y: 50, params: { value: 10 } },
+        { id: 'byte1', type: 'BYTE_INPUT', x: 0, y: 100, params: { value: 42 } },
+        { id: 'sw_sel', type: 'SWITCH', x: 0, y: 150, params: { state: 0 } },
+      ],
+      wires: [
+        { id: 'w0', from: { comp: 'byte0', pin: 'out' }, to: { comp: 'mux8', pin: 'd0' } },
+        { id: 'w1', from: { comp: 'byte1', pin: 'out' }, to: { comp: 'mux8', pin: 'd1' } },
+        { id: 'ws', from: { comp: 'sw_sel', pin: 'out' }, to: { comp: 'mux8', pin: 'sel' } },
+      ],
+    };
+
+    res = sim.evaluate(mux8Circuit);
+    expect(res.pinValues['mux8:out']).toEqual([0, 1, 0, 1, 0, 0, 0, 0]); // 10
+
+    mux8Circuit.components[3].params.state = 1;
+    res = sim.evaluate(mux8Circuit);
+    expect(res.pinValues['mux8:out']).toEqual([0, 1, 0, 1, 0, 1, 0, 0]); // 42 (32 + 8 + 2)
+  });
+
+  it('evaluates ADDER_8 and ZERO_DETECT_8', () => {
+    const circuit: CircuitModel = {
+      version: 1,
+      mode: 'sandbox',
+      components: [
+        { id: 'a', type: 'BYTE_INPUT', x: 0, y: 0, params: { value: 5 } },
+        { id: 'b', type: 'BYTE_INPUT', x: 0, y: 50, params: { value: 3 } },
+        { id: 'adder', type: 'ADDER_8', x: 100, y: 25, params: {} },
+        { id: 'zero', type: 'ZERO_DETECT_8', x: 200, y: 25, params: {} },
+      ],
+      wires: [
+        { id: 'w_a', from: { comp: 'a', pin: 'out' }, to: { comp: 'adder', pin: 'a' } },
+        { id: 'w_b', from: { comp: 'b', pin: 'out' }, to: { comp: 'adder', pin: 'b' } },
+        { id: 'w_s', from: { comp: 'adder', pin: 's' }, to: { comp: 'zero', pin: 'in' } },
+      ],
+    };
+
+    let res = sim.evaluate(circuit);
+    expect(res.pinValues['adder:s']).toEqual([0, 0, 0, 1, 0, 0, 0, 0]); // 8
+    expect(res.pinValues['adder:cout']).toBe(0);
+    expect(res.pinValues['adder:ovf']).toBe(0);
+    expect(res.pinValues['zero:zero']).toBe(0);
+
+    // Overflow / Carry: 200 + 100 = 300 (44 mod 256, cout = 1)
+    circuit.components[0].params.value = 200;
+    circuit.components[1].params.value = 100;
+    res = sim.evaluate(circuit);
+    expect(res.pinValues['adder:cout']).toBe(1);
+
+    // Zero detect: 0 + 0 = 0
+    circuit.components[0].params.value = 0;
+    circuit.components[1].params.value = 0;
+    res = sim.evaluate(circuit);
+    expect(res.pinValues['zero:zero']).toBe(1);
+  });
+
+  it('evaluates 8-Bit Accumulator end-to-end (5 + 3 = 8 with synchronous clocking)', () => {
+    // Complete accumulator: Input A -> Adder.A, Register.Q -> Adder.B, Adder.S -> Mux.D0, Input A -> Mux.D1
+    // Mux.OUT -> Register.D, Clock -> Register.CLK
+    const circuit: CircuitModel = {
+      version: 1,
+      mode: 'sandbox',
+      components: [
+        { id: 'operand', type: 'BYTE_INPUT', x: 0, y: 0, params: { value: 5 } },
+        { id: 'clk', type: 'CLOCK', x: 0, y: 100, params: { high: false } },
+        { id: 'mux', type: 'MUX_2x8', x: 150, y: 50, params: {} },
+        { id: 'sw_load_direct', type: 'SWITCH', x: 0, y: 150, params: { state: 1 } }, // 1 = Direct load, 0 = Accumulate
+        { id: 'reg', type: 'REGISTER_8', x: 300, y: 50, params: {}, state: { q: [0,0,0,0,0,0,0,0], lastClk: 0 } },
+        { id: 'adder', type: 'ADDER_8', x: 150, y: 200, params: {} },
+        { id: 'zero', type: 'ZERO_DETECT_8', x: 450, y: 50, params: {} },
+      ],
+      wires: [
+        // Adder connections
+        { id: 'w_add_a', from: { comp: 'operand', pin: 'out' }, to: { comp: 'adder', pin: 'a' } },
+        { id: 'w_add_b', from: { comp: 'reg', pin: 'q' }, to: { comp: 'adder', pin: 'b' } },
+        // Mux connections: D0 = Adder Sum (Accumulate), D1 = Direct Input (Load)
+        { id: 'w_mux_d0', from: { comp: 'adder', pin: 's' }, to: { comp: 'mux', pin: 'd0' } },
+        { id: 'w_mux_d1', from: { comp: 'operand', pin: 'out' }, to: { comp: 'mux', pin: 'd1' } },
+        { id: 'w_mux_sel', from: { comp: 'sw_load_direct', pin: 'out' }, to: { comp: 'mux', pin: 'sel' } },
+        // Register connections
+        { id: 'w_reg_d', from: { comp: 'mux', pin: 'out' }, to: { comp: 'reg', pin: 'd' } },
+        { id: 'w_reg_clk', from: { comp: 'clk', pin: 'out' }, to: { comp: 'reg', pin: 'clk' } },
+        // Zero detector
+        { id: 'w_zero', from: { comp: 'reg', pin: 'q' }, to: { comp: 'zero', pin: 'in' } },
+      ],
+    };
+
+    // Step 0: Initial state - Register Q is 0x00
+    let res = sim.evaluate(circuit);
+    expect(res.pinValues['reg:q']).toEqual([0, 0, 0, 0, 0, 0, 0, 0]); // 0
+    expect(res.pinValues['zero:zero']).toBe(1);
+
+    // Step 1: Clock rises (0 -> 1) with Direct Load = 1, Operand = 5.
+    // Register should sample 5 into Q!
+    circuit.components[1].params.high = true;
+    res = sim.evaluate(circuit, res.componentStates);
+    expect(res.pinValues['reg:q']).toEqual([1, 0, 1, 0, 0, 0, 0, 0]); // 5
+    expect(res.pinValues['zero:zero']).toBe(0);
+
+    // Step 2: Clock falls (1 -> 0). Register should hold 5.
+    circuit.components[1].params.high = false;
+    res = sim.evaluate(circuit, res.componentStates);
+    expect(res.pinValues['reg:q']).toEqual([1, 0, 1, 0, 0, 0, 0, 0]); // holds 5
+
+    // Step 3: Switch to ACCUMULATE mode (sw_load_direct = 0). Set Operand = 3.
+    // Adder computes A (3) + B (5) = 8.
+    circuit.components[3].params.state = 0; // Accumulate from adder
+    circuit.components[0].params.value = 3; // Operand = 3
+    res = sim.evaluate(circuit, res.componentStates);
+    // Before clock rises, Adder already has 8 at its output:
+    expect(res.pinValues['adder:s']).toEqual([0, 0, 0, 1, 0, 0, 0, 0]); // 8
+    expect(res.pinValues['reg:q']).toEqual([1, 0, 1, 0, 0, 0, 0, 0]); // still holds 5
+
+    // Step 4: Clock rises (0 -> 1)! Register samples the sum (8) from the adder!
+    circuit.components[1].params.high = true;
+    res = sim.evaluate(circuit, res.componentStates);
+    expect(res.pinValues['reg:q']).toEqual([0, 0, 0, 1, 0, 0, 0, 0]); // Q is now 8!
+
+    // Step 5: Clock falls (1 -> 0). Register holds 8.
+    // Adder now immediately reflects new sum: 8 + 3 = 11!
+    circuit.components[1].params.high = false;
+    res = sim.evaluate(circuit, res.componentStates);
+    expect(res.pinValues['reg:q']).toEqual([0, 0, 0, 1, 0, 0, 0, 0]); // holds 8
+    expect(res.pinValues['adder:s']).toEqual([1, 1, 0, 1, 0, 0, 0, 0]); // 11 (8 + 3)
+  });
 });
+

@@ -7,6 +7,7 @@ export interface PinDef {
   id: string;
   dir: PinDirection;
   label?: string;
+  width?: number; // 1 for single-bit (default), 8 for byte bus, etc.
   description?: string;
   descriptionI18n?: {
     en: string;
@@ -14,9 +15,19 @@ export interface PinDef {
   };
 }
 
+export type ComponentCategory =
+  | 'gate'
+  | 'io'
+  | 'display'
+  | 'sequential'
+  | 'block'
+  | 'mux'
+  | 'bus'
+  | 'arithmetic';
+
 export interface ComponentDef<TParams = any, TState = any> {
   type: string;
-  category: 'gate' | 'io' | 'display' | 'sequential' | 'block';
+  category: ComponentCategory;
   name: string;
   description?: string;
   nameI18n?: {

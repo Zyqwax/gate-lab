@@ -361,3 +361,135 @@ GateLab simülatörü gerçek dünya dijital elektronik standartlarına uygun **
 | **`1`** | Neon Zümrüt (`#10b981`) | **HIGH (Mantıksal Bir):** Pozitif gerilim (VCC). |
 | **`Z`** | Amber Sarı (`#f59e0b`) | **High-Impedance (Yüksek Empedans / Yüzer):** Hat sürülmüyor veya Tri-State tampon kapalı. |
 | **`X`** | Neon Kırmızı (`#ef4444`) | **Contention / Conflict (Çakışma):** İki farklı çıkışın aynı kabloya biri `1`, diğeri `0` vermesi sonucu oluşan kısa devre/hata durumu. |
+
+---
+
+## 7. Veri Yolu (Bus) Bileşenleri
+
+GateLab, çok bitli veri yollarını (8-Bit bus) birinci sınıf vatandaş (first-class citizen) olarak destekler. Veri yolu kabloları kalın çizilir ve üzerinde anlık hexadecimal değer rozeti (örn. `0x08`) gösterilir.
+
+### 7.1. 8-Bit Veri Yolu Ayırıcı (`BUS_SPLIT`)
+- **Kategori:** Veri Yolu (`bus`)
+- **Açıklama:** 8-bitlik bir veri yolunu 8 bağımsız tek-bit çıkışına ayırır (`out0` = LSB, `out7` = MSB).
+- **Giriş:** `in` (8-Bit Bus)
+- **Çıkışlar:** `out0`, `out1`, `out2`, `out3`, `out4`, `out5`, `out6`, `out7` (1-Bit)
+
+### 7.2. 8-Bit Veri Yolu Birleştirici (`BUS_MERGE`)
+- **Kategori:** Veri Yolu (`bus`)
+- **Açıklama:** 8 adet tek-bit giriş hattını (`in0` = LSB, `in7` = MSB) tek bir 8-bitlik veri yolunda birleştirir.
+- **Girişler:** `in0` .. `in7` (1-Bit)
+- **Çıkış:** `out` (8-Bit Bus)
+
+### 7.3. Sabit 8-Bit Veri Değeri (`BUS_CONST`)
+- **Kategori:** Veri Yolu (`bus`)
+- **Açıklama:** Belirlenen sabit 8-bitlik değeri (0–255 / 0x00–0xFF) sürekli olarak veri yoluna basar.
+- **Parametreler:** `value` (0–255)
+- **Çıkış:** `out` (8-Bit Bus)
+
+---
+
+## 8. Çoklayıcı ve Dağıtıcılar (Multiplexers & Demultiplexers)
+
+### 8.1. 2:1 Çoklayıcı (`MUX_2`)
+- **Kategori:** Çoklayıcı (`mux`)
+- **Açıklama:** `SEL=0` iken `D0`, `SEL=1` iken `D1` girişini `Y` çıkışına aktarır.
+- **Girişler:** `d0`, `d1`, `sel`
+- **Çıkış:** `out` (`Y`)
+
+### 8.2. 2:1 8-Bit Veri Yolu Çoklayıcısı (`MUX_2x8`)
+- **Kategori:** Çoklayıcı (`mux`)
+- **Açıklama:** İki 8-bitlik veri yolu arasında seçim yapar (`SEL=0` $\rightarrow$ `D0[7:0]`, `SEL=1` $\rightarrow$ `D1[7:0]`). Akümülatör mimarisinde sıfırlama veya yeni veri yükleme seçimi için idealdir.
+- **Girişler:** `d0` (8-Bit Bus), `d1` (8-Bit Bus), `sel` (1-Bit)
+- **Çıkış:** `out` (`Y`, 8-Bit Bus)
+
+### 8.3. 4:1 Çoklayıcı (`MUX_4`)
+- **Kategori:** Çoklayıcı (`mux`)
+- **Açıklama:** 2-bitlik seçim hattı (`S1`, `S0`) ile 4 veri girişinden (`D0`–`D3`) birini seçer.
+- **Girişler:** `d0`, `d1`, `d2`, `d3`, `s0`, `s1`
+- **Çıkış:** `out` (`Y`)
+
+### 8.4. 8:1 Çoklayıcı (`MUX_8`)
+- **Kategori:** Çoklayıcı (`mux`)
+- **Açıklama:** 3-bitlik seçim hattı (`S2`, `S1`, `S0`) ile 8 veri girişinden (`D0`–`D7`) birini seçer.
+- **Girişler:** `d0` .. `d7`, `s0`, `s1`, `s2`
+- **Çıkış:** `out` (`Y`)
+
+### 8.5. 1:2 Dağıtıcı (`DEMUX_1_2`)
+- **Kategori:** Dağıtıcı (`mux`)
+- **Açıklama:** Tek bir girişi `SEL=0` iken `Y0` çıkışına, `SEL=1` iken `Y1` çıkışına yönlendirir. Aktif olmayan çıkış `0` olur.
+- **Girişler:** `in`, `sel`
+- **Çıkışlar:** `out0` (`Y0`), `out1` (`Y1`)
+
+---
+
+## 9. Gelişmiş Ardışıl Devreler ve Kütükler (Registers & Flip-Flops)
+
+### 9.1. Asenkron Sıfırlamalı D Flip-Flop (`D_FF_RESET`)
+- **Kategori:** Ardışıl / Hafıza (`sequential`)
+- **Açıklama:** Asenkron `CLR` girişine sahip D-FF. `CLR=1` olduğunda saat darbesinden bağımsız anında `Q=0` olur. `CLR=0` iken saat yükselen kenarında `D` saklanır.
+- **Girişler:** `d`, `clk`, `clr`
+- **Çıkışlar:** `q`, `qbar`
+
+### 9.2. Yetkilendirmeli (Enable) D Flip-Flop (`D_FF_ENABLE`)
+- **Kategori:** Ardışıl / Hafıza (`sequential`)
+- **Açıklama:** Yalnızca `EN=1` iken saat darbesinde `D` girişini saklayan D-FF. `EN=0` iken saat darbesi gelse dahi eski değer korunur.
+- **Girişler:** `d`, `clk`, `en`
+- **Çıkışlar:** `q`, `qbar`
+
+### 9.3. 8-Bit Yüklemeli ve Sıfırlamalı Kütük (`REGISTER_8`)
+- **Kategori:** Ardışıl / Hafıza (`sequential`)
+- **Açıklama:** Tam senkron 8-bit saklama kütüğü (Accumulator Register).
+  - `CLR=1`: Asenkron anında sıfırlama ($Q \leftarrow 0\text{x}00$).
+  - `LOAD=1`: Saat darbesinin yükselen kenarında ($0 \rightarrow 1$) $D[7:0]$ verisi $Q[7:0]$'a aktarılır.
+  - `LOAD=0`: Saat darbesinde dahi eski değer korunur.
+- **Girişler:** `d` (8-Bit Bus), `clk`, `load`, `clr`
+- **Çıkış:** `q` (8-Bit Bus)
+
+---
+
+## 10. 8-Bit Aritmetik ve Mantık
+
+### 10.1. 8-Bit Tam Toplayıcı (`ADDER_8`)
+- **Kategori:** Aritmetik (`arithmetic`)
+- **Açıklama:** İki 8-bitlik sayıyı ve elde girişini toplayarak 8-bit toplam ve bayraklar üretir:
+  $$S[7:0] = A[7:0] + B[7:0] + CIN$$
+- **Girişler:** `a` (8-Bit Bus), `b` (8-Bit Bus), `cin` (1-Bit Elde Girişi)
+- **Çıkışlar:**
+  - `s` (8-Bit Toplam Veri Yolu, $S$)
+  - `cout` (8-Bit Elde Çıkışı, Carry Flag)
+  - `ovf` (2'ye tümleyen işaretli taşma bayrağı: $OVF = C_6 \oplus C_7$)
+
+### 10.2. 8-Bit Sıfır Algılayıcı (`ZERO_DETECT_8`)
+- **Kategori:** Aritmetik (`arithmetic`)
+- **Açıklama:** Girişindeki 8-bitlik veri yolunun tüm bitleri `0` ise çıkışında `1` (Zero Flag) üretir ($Z = \overline{IN_0 \lor \dots \lor IN_7}$). ALU durum bayrağı olarak kullanılır.
+- **Giriş:** `in` (8-Bit Bus)
+- **Çıkış:** `zero` (`Z`, 1-Bit)
+
+---
+
+## 11. 8-Bit Giriş ve Çıkış Elemanları
+
+### 11.1. 8-Bit DIP Anahtar (`DIP_SWITCH_8`)
+- **Kategori:** Giriş (`io`)
+- **Açıklama:** 8 bağımsız mikro anahtar ile tuval üzerinde doğrudan 8-bitlik veri yolu üretir. Hexadecimal ve ondalık değer önizlemesi sunar.
+- **Çıkış:** `out` (8-Bit Bus)
+
+### 11.2. 8-Bit Sayısal Giriş Üreteci (`BYTE_INPUT`)
+- **Kategori:** Giriş (`io`)
+- **Açıklama:** -10, -1, +1, +10 butonları veya doğrudan giriş ile 0–255 (0x00–0xFF) arasında değer üreten 8-bit veri kaynağı.
+- **Çıkış:** `out` (8-Bit Bus)
+
+### 11.3. Manuel Adım Saati Butonu (`MANUAL_CLOCK`)
+- **Kategori:** Giriş (`io`)
+- **Açıklama:** Her tıklamada tek ve temiz bir saat darbesi ($0 \rightarrow 1 \rightarrow 0$) üretir. Akümülatör ve işlemci devrelerini adım adım (single-step) hata ayıklamak için kullanılır.
+- **Çıkış:** `out` (`CLK`, 1-Bit)
+
+### 11.4. 8-Bit Sayısal Gösterge (`BYTE_DISPLAY`)
+- **Kategori:** Gösterge (`display`)
+- **Açıklama:** 8-bit veri yolunu büyük dijital yazı ile HEX (`0x00`–`0xFF`), DEC (`0`–`255`) veya BIN modunda gösterir.
+- **Giriş:** `in` (8-Bit Bus)
+
+### 11.5. 8-Bit Optik LED Çubuğu (`LED_BAR_8`)
+- **Kategori:** Gösterge (`display`)
+- **Açıklama:** 8-bitlik veri yolunun her bir bitini ayrı ayrı yanan 8 adet optik LED sütunu olarak görselleştirir.
+- **Giriş:** `in` (8-Bit Bus)

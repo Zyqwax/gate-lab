@@ -1,7 +1,7 @@
 import React from 'react';
 import { Handle, Position, NodeProps } from '@xyflow/react';
 import { useCircuitStore } from '../../store/circuitStore';
-import { getSignalColor } from '../../engine/signal';
+import { getSignalColor, isBusSignal, normalizeToBus, busToNumber, busToString } from '../../engine/signal';
 
 function decodeSevenSeg(s: { a: number; b: number; c: number; d: number; e: number; f: number; g: number }): string | null {
   const code =
@@ -68,13 +68,23 @@ export const DisplayNode: React.FC<NodeProps> = ({ id, data, selected }) => {
   const hexValue = decimalValue.toString(16).toUpperCase();
   const binStr = `${b3}${b2}${b1}${b0}`;
 
+  // 8-Bit Bus Display state (BYTE_DISPLAY & LED_BAR_8)
+  const isBusInput = compType === 'BYTE_DISPLAY' || compType === 'LED_BAR_8';
+  const busVal = normalizeToBus(inSignal, 8, 0);
+  const byteNumber = busToNumber(busVal);
+  const byteHexStr = byteNumber !== null ? byteNumber.toString(16).toUpperCase().padStart(2, '0') : '??';
+  const byteDecStr = byteNumber !== null ? byteNumber.toString(10) : '??';
+  const byteBinStr = busToString(busVal, 'bin');
+
   return (
     <div
       className={`relative rounded-xl border bg-slate-900/95 backdrop-blur-md px-3.5 py-2.5 shadow-xl transition-all duration-150 ${
         compType === 'SEVEN_SEGMENT'
           ? 'min-w-[170px]'
-          : compType === 'DECIMAL_DISPLAY'
+          : compType === 'DECIMAL_DISPLAY' || compType === 'BYTE_DISPLAY'
           ? 'min-w-[190px]'
+          : compType === 'LED_BAR_8'
+          ? 'min-w-[220px]'
           : 'min-w-[110px]'
       } ${
         selected
@@ -233,18 +243,92 @@ export const DisplayNode: React.FC<NodeProps> = ({ id, data, selected }) => {
             </div>
           </div>
         )}
+
+        {/* 8-Bit Byte Display (DEC, HEX, BIN) */}
+        {compType === 'BYTE_DISPLAY' && (
+          <div className="flex flex-col items-center justify-center bg-slate-950 px-4 py-2 rounded-lg border border-slate-800 shadow-inner w-full">
+            <span
+              className="font-mono text-3xl font-black tracking-wider"
+              style={{
+                color: userColor,
+                textShadow: `0 0 15px ${userColor}88`,
+              }}
+            >
+              {byteNumber !== null ? (params.mode === 'DEC' ? byteDecStr : `0x${byteHexStr}`) : '??'}
+            </span>
+            <div className="flex items-center gap-2 mt-1.5 text-[9px] font-mono">
+              <span className="px-1.5 py-0.5 rounded bg-slate-900 border border-slate-800 text-slate-300">
+                DEC: {byteDecStr}
+              </span>
+              <span className="px-1.5 py-0.5 rounded bg-slate-900 border border-slate-800 text-slate-400">
+                BIN: {byteBinStr}
+              </span>
+            </div>
+          </div>
+        )}
+
+        {/* 8-Bit LED Optical Bar */}
+        {compType === 'LED_BAR_8' && (
+          <div className="flex flex-col gap-1.5 w-full py-1">
+            <div className="flex items-center justify-between gap-1 bg-slate-950 p-2 rounded-lg border border-slate-800 shadow-inner">
+              {[7, 6, 5, 4, 3, 2, 1, 0].map((bitIdx) => {
+                const bitVal = busVal[bitIdx];
+                const isBitHigh = bitVal === 1;
+                return (
+                  <div key={bitIdx} className="flex flex-col items-center gap-1">
+                    <span className="text-[8px] font-mono font-bold text-slate-500">
+                      {bitIdx}
+                    </span>
+                    <div
+                      className="w-4 h-9 rounded-sm border transition-all duration-150 flex items-center justify-center"
+                      style={{
+                        backgroundColor: isBitHigh ? userColor : '#0f172a',
+                        borderColor: isBitHigh ? '#ffffff' : '#334155',
+                        boxShadow: isBitHigh
+                          ? `0 0 12px ${userColor}, 0 0 20px ${userColor}88, inset 0 0 6px #ffffff88`
+                          : 'none',
+                      }}
+                    >
+                      <div
+                        className="w-1.5 h-3 rounded-xs opacity-60"
+                        style={{ backgroundColor: isBitHigh ? '#ffffff' : '#1e293b' }}
+                      />
+                    </div>
+                    <span
+                      className="text-[8px] font-mono font-bold"
+                      style={{ color: isBitHigh ? userColor : '#475569' }}
+                    >
+                      {bitVal === 1 ? '1' : bitVal === 0 ? '0' : String(bitVal)}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+            <div className="flex items-center justify-between px-1 text-[9px] font-mono text-slate-400">
+              <span>0x{byteHexStr}</span>
+              <span className="text-emerald-400 font-bold">= {byteDecStr}</span>
+            </div>
+          </div>
+        )}
       </div>
 
-      {/* Input Handle on the Left for single-input displays (LED, PROBE) */}
+      {/* Input Handle on the Left for single-input displays (LED, PROBE, BYTE_DISPLAY, LED_BAR_8) */}
       {compType !== 'SEVEN_SEGMENT' && compType !== 'DECIMAL_DISPLAY' && (
-        <div className="absolute left-0 top-1/2 -translate-y-1/2 -left-[7px]">
+        <div className="absolute left-0 top-1/2 -translate-y-1/2 -left-[7px] flex items-center">
           <Handle
             type="target"
             position={Position.Left}
             id="in"
-            className="!w-3.5 !h-3.5 !rounded-full !border-2 !border-slate-900 hover:!scale-125 !transition-transform"
+            className={`${
+              isBusInput ? '!w-4 !h-4 !rounded-md' : '!w-3.5 !h-3.5 !rounded-full'
+            } !border-2 !border-slate-900 hover:!scale-125 !transition-transform`}
             style={{ backgroundColor: getSignalColor(inSignal) }}
           />
+          {isBusInput && (
+            <span className="text-[8px] font-mono font-bold text-sky-400 ml-2.5 select-none pointer-events-none">
+              [7:0]
+            </span>
+          )}
         </div>
       )}
 

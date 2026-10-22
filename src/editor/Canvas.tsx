@@ -106,7 +106,14 @@ const CanvasInner: React.FC = () => {
     return components.map((comp) => {
       const def = getComponentDef(comp.type);
       let nodeCategory = def?.category || 'gate';
-      if (nodeCategory === 'sequential') nodeCategory = 'block';
+      if (
+        nodeCategory === 'sequential' ||
+        nodeCategory === 'mux' ||
+        nodeCategory === 'bus' ||
+        nodeCategory === 'arithmetic'
+      ) {
+        nodeCategory = 'block';
+      }
 
       return {
         id: comp.id,

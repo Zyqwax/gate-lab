@@ -1,7 +1,7 @@
 import React, { useRef, useCallback, useEffect } from 'react';
 import { Handle, Position, NodeProps } from '@xyflow/react';
 import { useCircuitStore } from '../../store/circuitStore';
-import { getSignalColor } from '../../engine/signal';
+import { getSignalColor, isBusSignal, busToString, busToNumber } from '../../engine/signal';
 import { Plus, Minus } from 'lucide-react';
 
 export const IONode: React.FC<NodeProps> = ({ id, data, selected }) => {
@@ -16,6 +16,7 @@ export const IONode: React.FC<NodeProps> = ({ id, data, selected }) => {
   const removeComponent = useCircuitStore((state) => state.removeComponent);
 
   const isMultiOutput = compType === 'DIP_SWITCH_4' || compType === 'DECIMAL_INPUT';
+  const isBusOutput = compType === 'DIP_SWITCH_8' || compType === 'BYTE_INPUT';
   const outSignal = pinValues[`${id}:out`] ?? (compType === 'CONST_HIGH' ? 1 : 0);
   const isHigh = outSignal === 1;
 
@@ -89,6 +90,23 @@ export const IONode: React.FC<NodeProps> = ({ id, data, selected }) => {
     (dipBits[1] === 1 ? 2 : 0) +
     (dipBits[0] === 1 ? 1 : 0);
 
+  // DIP Switch 8-bit state: params.bits = [b0..b7] (0=LSB, 7=MSB)
+  const dip8Bits: number[] = Array.isArray(params.bits) ? params.bits : [0, 0, 0, 0, 0, 0, 0, 0];
+  const toggleDip8Bit = (index: number) => {
+    const nextBits = [...dip8Bits];
+    while (nextBits.length < 8) nextBits.push(0);
+    nextBits[index] = nextBits[index] === 1 ? 0 : 1;
+    updateComponentParams(id, { bits: nextBits });
+  };
+  const dip8DecVal = dip8Bits.reduce((acc, bit, i) => acc + (bit === 1 ? (1 << i) : 0), 0);
+
+  // Byte Input state (0..255)
+  const byteInputVal = Math.max(0, Math.min(255, Number(params.value) || 0));
+  const changeByteInput = (delta: number) => {
+    const next = Math.max(0, Math.min(255, byteInputVal + delta));
+    updateComponentParams(id, { value: next });
+  };
+
   // Decimal Input state
   const decInputVal = Math.max(0, Math.min(15, Number(params.value) || 0));
   const changeDecInput = (delta: number) => {
@@ -97,10 +115,28 @@ export const IONode: React.FC<NodeProps> = ({ id, data, selected }) => {
   };
   const decBinStr = decInputVal.toString(2).padStart(4, '0');
 
+  // Badge text for header
+  let badgeText: string = String(outSignal);
+  if (isMultiOutput) {
+    badgeText = compType === 'DIP_SWITCH_4' ? `DEC: ${dipDecVal}` : `VAL: ${decInputVal}`;
+  } else if (compType === 'DIP_SWITCH_8') {
+    badgeText = `0x${dip8DecVal.toString(16).toUpperCase().padStart(2, '0')}`;
+  } else if (compType === 'BYTE_INPUT') {
+    badgeText = `0x${byteInputVal.toString(16).toUpperCase().padStart(2, '0')}`;
+  } else if (isBusSignal(outSignal)) {
+    badgeText = busToString(outSignal, 'hex');
+  }
+
   return (
     <div
       className={`relative rounded-xl border bg-slate-900/95 backdrop-blur-md px-3.5 py-2.5 shadow-xl transition-all duration-150 ${
-        isMultiOutput ? 'min-w-[190px]' : 'min-w-[120px]'
+        compType === 'DIP_SWITCH_8'
+          ? 'min-w-[270px]'
+          : compType === 'BYTE_INPUT'
+          ? 'min-w-[210px]'
+          : isMultiOutput
+          ? 'min-w-[190px]'
+          : 'min-w-[120px]'
       } ${
         selected
           ? 'border-sky-400 ring-2 ring-sky-500/30 shadow-sky-500/20'
@@ -113,16 +149,14 @@ export const IONode: React.FC<NodeProps> = ({ id, data, selected }) => {
         </span>
         <span
           className={`text-[9px] font-mono font-bold px-1.5 py-0.5 rounded ${
-            !isMultiOutput && isHigh
+            isBusOutput
+              ? 'bg-sky-950 text-sky-400 border border-sky-800'
+              : !isMultiOutput && isHigh
               ? 'bg-emerald-950 text-emerald-400 border border-emerald-800'
               : 'bg-slate-800 text-slate-400'
           }`}
         >
-          {isMultiOutput
-            ? compType === 'DIP_SWITCH_4'
-              ? `DEC: ${dipDecVal}`
-              : `VAL: ${decInputVal}`
-            : outSignal}
+          {badgeText}
         </span>
       </div>
 
@@ -237,6 +271,140 @@ export const IONode: React.FC<NodeProps> = ({ id, data, selected }) => {
         {compType === 'CONST_LOW' && (
           <div className="px-3 py-1 rounded bg-slate-800/80 border border-slate-700 text-slate-400 font-mono text-xs font-bold">
             0V (GND)
+          </div>
+        )}
+
+        {/* Manual Step Clock Pulse Button */}
+        {compType === 'MANUAL_CLOCK' && (
+          <button
+            type="button"
+            className="nodrag nopan select-none touch-none px-3.5 py-2 rounded-xl bg-slate-800 border-2 border-sky-500/60 hover:border-sky-400 hover:bg-slate-750 active:scale-95 text-sky-400 font-mono font-bold text-xs shadow-lg flex items-center gap-2 cursor-pointer transition-all"
+            onClick={(e) => {
+              e.stopPropagation();
+              updateComponentParams(id, { high: true });
+              setTimeout(() => {
+                updateComponentParams(id, { high: false });
+              }, 120);
+            }}
+          >
+            <div
+              className={`w-3.5 h-3.5 rounded-full border transition-all ${
+                params.high
+                  ? 'bg-sky-400 border-white shadow-[0_0_8px_#38bdf8]'
+                  : 'bg-slate-700 border-slate-600'
+              }`}
+            />
+            <span>STEP CLK ⤊</span>
+          </button>
+        )}
+
+        {/* 8-Bit DIP Switch interactive display */}
+        {compType === 'DIP_SWITCH_8' && (
+          <div className="flex flex-col gap-1.5 w-full py-0.5">
+            <div className="flex items-center gap-1 justify-center bg-slate-950 p-2 rounded-lg border border-slate-800">
+              {[7, 6, 5, 4, 3, 2, 1, 0].map((bitIdx) => {
+                const isActive = dip8Bits[bitIdx] === 1;
+                return (
+                  <button
+                    key={bitIdx}
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      toggleDip8Bit(bitIdx);
+                    }}
+                    className={`nodrag nopan select-none touch-none flex flex-col items-center justify-center w-7 h-12 rounded border transition-all cursor-pointer ${
+                      isActive
+                        ? 'bg-emerald-500 border-emerald-300 text-slate-950 shadow-md shadow-emerald-500/30'
+                        : 'bg-slate-800 border-slate-700 text-slate-400 hover:bg-slate-750'
+                    }`}
+                    title={`Bit ${bitIdx} (${1 << bitIdx})`}
+                  >
+                    <span className="text-[7px] font-mono font-bold leading-none mb-1">
+                      {bitIdx}
+                    </span>
+                    <div
+                      className={`w-3.5 h-5 rounded-sm flex items-center justify-center font-mono font-black text-[11px] ${
+                        isActive ? 'bg-slate-950 text-emerald-400' : 'bg-slate-900 text-slate-500'
+                      }`}
+                    >
+                      {isActive ? '1' : '0'}
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+            <div className="flex items-center justify-between px-1 text-[9px] font-mono text-slate-400">
+              <span>HEX: 0x{dip8DecVal.toString(16).toUpperCase().padStart(2, '0')}</span>
+              <span className="text-emerald-400 font-bold">DEC: {dip8DecVal}</span>
+            </div>
+          </div>
+        )}
+
+        {/* 8-Bit Byte Input interactive display */}
+        {compType === 'BYTE_INPUT' && (
+          <div className="flex flex-col gap-1.5 w-full py-0.5">
+            <div className="flex items-center justify-center gap-1.5 bg-slate-950 p-2 rounded-lg border border-slate-800">
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  changeByteInput(-10);
+                }}
+                disabled={byteInputVal <= 0}
+                className="nodrag nopan px-1.5 py-1 rounded bg-slate-800 hover:bg-slate-700 disabled:opacity-30 text-[10px] font-mono text-slate-300 cursor-pointer"
+                title="-10"
+              >
+                -10
+              </button>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  changeByteInput(-1);
+                }}
+                disabled={byteInputVal <= 0}
+                className="nodrag nopan w-7 h-7 rounded-md bg-slate-800 hover:bg-slate-700 disabled:opacity-30 text-slate-200 flex items-center justify-center cursor-pointer"
+                title="-1"
+              >
+                <Minus className="w-3.5 h-3.5" />
+              </button>
+              <div className="w-16 h-10 flex flex-col items-center justify-center rounded bg-slate-900 border border-slate-800">
+                <span className="font-mono text-lg font-black text-emerald-400 leading-none">
+                  {byteInputVal}
+                </span>
+                <span className="text-[9px] font-mono text-sky-400 mt-0.5 leading-none">
+                  0x{byteInputVal.toString(16).toUpperCase().padStart(2, '0')}
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  changeByteInput(1);
+                }}
+                disabled={byteInputVal >= 255}
+                className="nodrag nopan w-7 h-7 rounded-md bg-slate-800 hover:bg-slate-700 disabled:opacity-30 text-slate-200 flex items-center justify-center cursor-pointer"
+                title="+1"
+              >
+                <Plus className="w-3.5 h-3.5" />
+              </button>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  changeByteInput(10);
+                }}
+                disabled={byteInputVal >= 255}
+                className="nodrag nopan px-1.5 py-1 rounded bg-slate-800 hover:bg-slate-700 disabled:opacity-30 text-[10px] font-mono text-slate-300 cursor-pointer"
+                title="+10"
+              >
+                +10
+              </button>
+            </div>
+            <div className="flex items-center justify-between px-1 text-[9px] font-mono text-slate-400">
+              <span>BIN: {byteInputVal.toString(2).padStart(8, '0')}</span>
+              <span className="text-emerald-400 font-bold">8-Bit BUS</span>
+            </div>
           </div>
         )}
 
@@ -398,12 +566,19 @@ export const IONode: React.FC<NodeProps> = ({ id, data, selected }) => {
 
       {/* Output Handle for single-output IO nodes */}
       {!isMultiOutput && (
-        <div className="absolute right-0 top-1/2 -translate-y-1/2 -right-[7px]">
+        <div className="absolute right-0 top-1/2 -translate-y-1/2 -right-[7px] flex items-center">
+          {isBusOutput && (
+            <span className="text-[8px] font-mono font-bold text-sky-400 mr-2.5 select-none pointer-events-none">
+              [7:0]
+            </span>
+          )}
           <Handle
             type="source"
             position={Position.Right}
             id="out"
-            className="!w-3.5 !h-3.5 !rounded-full !border-2 !border-slate-900 hover:!scale-125 !transition-transform"
+            className={`${
+              isBusOutput ? '!w-4 !h-4 !rounded-md' : '!w-3.5 !h-3.5 !rounded-full'
+            } !border-2 !border-slate-900 hover:!scale-125 !transition-transform`}
             style={{ backgroundColor: getSignalColor(outSignal) }}
           />
         </div>

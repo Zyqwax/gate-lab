@@ -252,6 +252,76 @@ export const TEMPLATES: CircuitTemplate[] = [
       ],
     },
   },
+  {
+    id: 'accumulator-8bit',
+    name: '8-Bit Accumulator with Adder & Register',
+    category: 'ALU & CPU Core',
+    description: 'Complete 8-bit accumulator loop: Byte Input / Constant MUX -> 8-Bit Adder -> 8-Bit Register with feedback. Includes Manual Step Clock, Byte Display, LED Bar, and Zero Flag.',
+    nameI18n: {
+      en: '8-Bit Accumulator with Adder & Register',
+      tr: '8-Bit Akümülatör (Toplayıcı & Kütük Döngüsü)',
+    },
+    categoryI18n: {
+      en: 'ALU & CPU Core',
+      tr: 'ALU & İşlemci Çekirdeği',
+    },
+    descriptionI18n: {
+      en: 'Complete 8-bit accumulator loop: Byte Input / Constant MUX -> 8-Bit Adder -> 8-Bit Register with feedback. Includes Manual Step Clock, Byte Display, LED Bar, and Zero Flag.',
+      tr: 'Tam 8-bitlik akümülatör mimarisi: Sayısal Giriş / Sabit MUX -> 8-Bit Tam Toplayıcı -> 8-Bit Kütük (Geri Besleme Döngüsü). Manuel Adım Saati, Sayısal Gösterge, LED Çubuğu ve Sıfır Bayrağı içerir.',
+    },
+    circuit: {
+      version: 1,
+      mode: 'sandbox',
+      components: [
+        // Inputs & MUX
+        { id: 'in_val', type: 'BYTE_INPUT', x: 60, y: 120, params: { value: 5, label: 'Giriş Verisi (5)' } },
+        { id: 'bus_zero', type: 'BUS_CONST', x: 60, y: 260, params: { value: 0, label: 'Sabit (0x00)' } },
+        { id: 'sw_sel', type: 'SWITCH', x: 60, y: 380, params: { state: 1, label: 'MUX Seçici (1=Veri)' } },
+        { id: 'mux', type: 'MUX_2x8', x: 320, y: 160, params: { label: 'Giriş MUX (2x8)' } },
+
+        // Arithmetic & Sequential
+        { id: 'adder', type: 'ADDER_8', x: 560, y: 180, params: { label: '8-Bit Toplayıcı' } },
+        { id: 'reg', type: 'REGISTER_8', x: 840, y: 200, params: { label: 'Akümülatör Kütüğü (Q)' } },
+
+        // Controls
+        { id: 'clk_step', type: 'MANUAL_CLOCK', x: 560, y: 440, params: { label: 'Adım Saati (CLK)' } },
+        { id: 'sw_load', type: 'SWITCH', x: 560, y: 550, params: { state: 1, label: 'Yükle (LOAD)' } },
+        { id: 'sw_clr', type: 'SWITCH', x: 560, y: 660, params: { state: 0, label: 'Sıfırla (CLR)' } },
+
+        // Displays & Flags
+        { id: 'disp_out', type: 'BYTE_DISPLAY', x: 1120, y: 100, params: { label: 'Akümülatör Çıkışı', color: '#10b981' } },
+        { id: 'led_bar', type: 'LED_BAR_8', x: 1120, y: 260, params: { label: 'LED Çubuğu (8-Bit)', color: '#38bdf8' } },
+        { id: 'zero_det', type: 'ZERO_DETECT_8', x: 1120, y: 470, params: { label: 'Sıfır Algılayıcı' } },
+        { id: 'led_zero', type: 'LED', x: 1320, y: 470, params: { label: 'Sıfır Bayrağı (Z)', color: '#f59e0b' } },
+      ],
+      wires: [
+        // MUX inputs
+        { id: 'w_zero_mux', from: { comp: 'bus_zero', pin: 'out' }, to: { comp: 'mux', pin: 'd0' } },
+        { id: 'w_in_mux', from: { comp: 'in_val', pin: 'out' }, to: { comp: 'mux', pin: 'd1' } },
+        { id: 'w_sel_mux', from: { comp: 'sw_sel', pin: 'out' }, to: { comp: 'mux', pin: 'sel' } },
+
+        // MUX to Adder
+        { id: 'w_mux_adder', from: { comp: 'mux', pin: 'out' }, to: { comp: 'adder', pin: 'a' } },
+
+        // Adder to Register
+        { id: 'w_adder_reg', from: { comp: 'adder', pin: 's' }, to: { comp: 'reg', pin: 'd' } },
+
+        // Register Feedback Loop to Adder B input
+        { id: 'w_reg_fb', from: { comp: 'reg', pin: 'q' }, to: { comp: 'adder', pin: 'b' } },
+
+        // Controls to Register
+        { id: 'w_clk_reg', from: { comp: 'clk_step', pin: 'out' }, to: { comp: 'reg', pin: 'clk' } },
+        { id: 'w_load_reg', from: { comp: 'sw_load', pin: 'out' }, to: { comp: 'reg', pin: 'load' } },
+        { id: 'w_clr_reg', from: { comp: 'sw_clr', pin: 'out' }, to: { comp: 'reg', pin: 'clr' } },
+
+        // Outputs
+        { id: 'w_reg_disp', from: { comp: 'reg', pin: 'q' }, to: { comp: 'disp_out', pin: 'in' } },
+        { id: 'w_reg_bar', from: { comp: 'reg', pin: 'q' }, to: { comp: 'led_bar', pin: 'in' } },
+        { id: 'w_reg_zdet', from: { comp: 'reg', pin: 'q' }, to: { comp: 'zero_det', pin: 'in' } },
+        { id: 'w_zdet_led', from: { comp: 'zero_det', pin: 'zero' }, to: { comp: 'led_zero', pin: 'in' } },
+      ],
+    },
+  },
 ];
 
 /**

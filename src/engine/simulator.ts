@@ -1,5 +1,5 @@
 import { CircuitModel, SimulationResult, ComponentDef } from './types';
-import { Signal, resolveSignals } from './signal';
+import { Signal, resolveSignals, normalizeToBus } from './signal';
 import { buildNetlist, Netlist } from './netlist';
 import { REGISTRY, getComponentPins } from '../components-lib/registry';
 
@@ -161,47 +161,101 @@ export class Simulator {
     // Phase 1: Combinational signals settle to steady state
     iterations += settle();
 
-    // Phase 2: Edge-triggered sequential sampling (D_FLIP_FLOP)
-    // Supports both synchronous clocking and asynchronous ripple clock chains (FF1.Q -> FF2.CLK)
-    let anyDffTriggered = true;
-    let dffPass = 0;
-    while (anyDffTriggered && dffPass < 10) {
-      anyDffTriggered = false;
-      dffPass++;
+    // Phase 2: Edge-triggered sequential sampling (D_FLIP_FLOP, D_FF_RESET, D_FF_ENABLE, REGISTER_8)
+    // Supports synchronous clocking, asynchronous reset, and ripple clock chains
+    let anySeqTriggered = true;
+    let seqPass = 0;
+    while (anySeqTriggered && seqPass < 10) {
+      anySeqTriggered = false;
+      seqPass++;
 
-      const dffUpdates: { compId: string; nextQ: number; nextClk: number }[] = [];
+      const seqUpdates: {
+        compId: string;
+        nextState: any;
+        outputs: Record<string, Signal>;
+      }[] = [];
+
       for (const comp of circuit.components) {
-        if (comp.type === 'D_FLIP_FLOP') {
+        if (
+          comp.type === 'D_FLIP_FLOP' ||
+          comp.type === 'D_FF_RESET' ||
+          comp.type === 'D_FF_ENABLE'
+        ) {
           const state = componentStates[comp.id] ?? { q: 0, lastClk: 0 };
-          const lastClk = (dffPass === 1 && previousStates[comp.id]?.lastClk !== undefined)
+          const lastClk = (seqPass === 1 && previousStates[comp.id]?.lastClk !== undefined)
             ? previousStates[comp.id].lastClk
             : state.lastClk ?? 0;
           const currentClk = pinInputs.get(`${comp.id}:clk`) === 1 ? 1 : 0;
           const currentD = pinInputs.get(`${comp.id}:d`) === 1 ? 1 : 0;
+          const currentClr = pinInputs.get(`${comp.id}:clr`) === 1 ? 1 : 0;
+          const currentEn = pinInputs.get(`${comp.id}:en`) === 0 ? 0 : 1;
 
           let nextQ = state.q ?? 0;
-          // Rising edge detection (0 -> 1)
-          if (lastClk === 0 && currentClk === 1) {
-            nextQ = currentD;
+          if (comp.type === 'D_FF_RESET' && currentClr === 1) {
+            // Asynchronous clear overrides clock
+            nextQ = 0;
+          } else if (lastClk === 0 && currentClk === 1) {
+            // Rising edge detection (0 -> 1)
+            if (comp.type === 'D_FF_ENABLE') {
+              if (currentEn === 1) nextQ = currentD;
+            } else {
+              nextQ = currentD;
+            }
           }
 
-          dffUpdates.push({ compId: comp.id, nextQ, nextClk: currentClk });
+          seqUpdates.push({
+            compId: comp.id,
+            nextState: { q: nextQ, lastClk: currentClk },
+            outputs: {
+              q: nextQ === 1 ? 1 : 0,
+              qbar: nextQ === 1 ? 0 : 1,
+            },
+          });
+        } else if (comp.type === 'REGISTER_8') {
+          const defaultQ = [0, 0, 0, 0, 0, 0, 0, 0];
+          const state = componentStates[comp.id] ?? { q: defaultQ, lastClk: 0 };
+          const lastClk = (seqPass === 1 && previousStates[comp.id]?.lastClk !== undefined)
+            ? previousStates[comp.id].lastClk
+            : state.lastClk ?? 0;
+          const currentClk = pinInputs.get(`${comp.id}:clk`) === 1 ? 1 : 0;
+          const currentClr = pinInputs.get(`${comp.id}:clr`) === 1 ? 1 : 0;
+          const currentLoad = pinInputs.get(`${comp.id}:load`) === 0 ? 0 : 1;
+          const currentD = normalizeToBus(pinInputs.get(`${comp.id}:d`), 8, 0);
+
+          let nextQ = Array.isArray(state.q) ? [...state.q] : defaultQ;
+          if (currentClr === 1) {
+            // Asynchronous clear overrides clock
+            nextQ = [0, 0, 0, 0, 0, 0, 0, 0];
+          } else if (lastClk === 0 && currentClk === 1) {
+            // Rising edge on clock
+            if (currentLoad === 1) {
+              nextQ = currentD;
+            }
+          }
+
+          seqUpdates.push({
+            compId: comp.id,
+            nextState: { q: nextQ, lastClk: currentClk },
+            outputs: { q: nextQ },
+          });
         }
       }
 
       // Commit states
-      for (const up of dffUpdates) {
-        const oldState = componentStates[up.compId] ?? { q: 0, lastClk: 0 };
-        if (oldState.q !== up.nextQ) {
-          anyDffTriggered = true;
+      for (const up of seqUpdates) {
+        const oldState = componentStates[up.compId];
+        const stateDiff = JSON.stringify(oldState) !== JSON.stringify(up.nextState);
+        if (stateDiff) {
+          anySeqTriggered = true;
         }
-        componentStates[up.compId] = { q: up.nextQ, lastClk: up.nextClk };
-        pinOutputs.set(`${up.compId}:q`, up.nextQ === 1 ? 1 : 0);
-        pinOutputs.set(`${up.compId}:qbar`, up.nextQ === 1 ? 0 : 1);
+        componentStates[up.compId] = up.nextState;
+        for (const [pinId, sig] of Object.entries(up.outputs)) {
+          pinOutputs.set(`${up.compId}:${pinId}`, sig);
+        }
       }
 
-      // If any flip-flop changed Q, settle downstream logic (or downstream flip-flop clocks!)
-      if (anyDffTriggered) {
+      // If any sequential component changed output, settle downstream logic
+      if (anySeqTriggered) {
         iterations += settle();
       }
     }
