@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useCallback, useRef, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { useReactFlow } from "@xyflow/react";
 import { COMPONENT_DEFINITIONS, getLocalizedComponentDefinitions } from "../components-lib/registry";
 import { TEMPLATES, getLocalizedTemplates } from "../templates/circuits";
@@ -489,41 +490,44 @@ export const Palette: React.FC = () => {
       </div>
 
       {/* Mobile / Tablet Touch Drag Floating Ghost Preview */}
-      {touchGhost && (
-        <div
-          className={`fixed pointer-events-none z-[9999] -translate-x-1/2 -translate-y-1/2 flex items-center gap-2.5 px-3 py-2 rounded-xl border-2 shadow-2xl backdrop-blur-md transition-all duration-75 ${
-            touchGhost.isOverCanvas
-              ? "bg-slate-900/95 border-emerald-400 shadow-emerald-500/30 scale-105 ring-2 ring-emerald-500/30"
-              : "bg-slate-900/90 border-slate-700 shadow-black/50 opacity-80"
-          }`}
-          style={{
-            left: `${touchGhost.x}px`,
-            top: `${touchGhost.y}px`,
-          }}
-        >
+      {touchGhost &&
+        typeof document !== "undefined" &&
+        createPortal(
           <div
-            className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
+            className={`fixed pointer-events-none z-[9999] -translate-x-1/2 -translate-y-1/2 flex items-center gap-2.5 px-3 py-2 rounded-xl border-2 shadow-2xl backdrop-blur-md transition-all duration-75 ${
               touchGhost.isOverCanvas
-                ? "bg-emerald-950/80 text-emerald-300 border border-emerald-500/40"
-                : "bg-slate-800 text-slate-300"
+                ? "bg-slate-900/95 border-emerald-400 shadow-emerald-500/30 scale-105 ring-2 ring-emerald-500/30"
+                : "bg-slate-900/90 border-slate-700 shadow-black/50 opacity-80"
             }`}
+            style={{
+              left: `${touchGhost.x}px`,
+              top: `${touchGhost.y}px`,
+            }}
           >
-            <ComponentIcon type={touchGhost.type} className="w-5 h-5 drop-shadow-sm" />
-          </div>
-          <div className="flex flex-col pr-1">
-            <span className="text-xs font-bold text-white leading-tight">
-              {touchGhost.name}
-            </span>
-            <span
-              className={`text-[9px] font-mono leading-tight ${
-                touchGhost.isOverCanvas ? "text-emerald-400 font-semibold" : "text-slate-400"
+            <div
+              className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
+                touchGhost.isOverCanvas
+                  ? "bg-emerald-950/80 text-emerald-300 border border-emerald-500/40"
+                  : "bg-slate-800 text-slate-300"
               }`}
             >
-              {touchGhost.isOverCanvas ? t("dropToCanvas") : touchGhost.type}
-            </span>
-          </div>
-        </div>
-      )}
+              <ComponentIcon type={touchGhost.type} className="w-5 h-5 drop-shadow-sm" />
+            </div>
+            <div className="flex flex-col pr-1">
+              <span className="text-xs font-bold text-white leading-tight">
+                {touchGhost.name}
+              </span>
+              <span
+                className={`text-[9px] font-mono leading-tight ${
+                  touchGhost.isOverCanvas ? "text-emerald-400 font-semibold" : "text-slate-400"
+                }`}
+              >
+                {touchGhost.isOverCanvas ? t("dropToCanvas") : touchGhost.type}
+              </span>
+            </div>
+          </div>,
+          document.body
+        )}
     </div>
   );
 };
