@@ -148,6 +148,88 @@ export const ComponentIcon: React.FC<ComponentIconProps> = ({ type, className = 
     );
   }
 
+  // Input: 4-Bit DIP Switch
+  if (type === 'DIP_SWITCH_4') {
+    return (
+      <svg viewBox="0 0 32 32" className={className} fill="none" stroke="currentColor" strokeWidth="1.5">
+        <rect x="2" y="6" width="28" height="20" rx="3" fill="#020617" stroke="#334155" />
+        <rect x="5" y="9" width="4" height="6" rx="1" fill="#10b981" />
+        <rect x="11" y="15" width="4" height="6" rx="1" fill="#475569" />
+        <rect x="17" y="9" width="4" height="6" rx="1" fill="#10b981" />
+        <rect x="23" y="9" width="4" height="6" rx="1" fill="#10b981" />
+      </svg>
+    );
+  }
+
+  // Input: Decimal Generator
+  if (type === 'DECIMAL_INPUT') {
+    return (
+      <svg viewBox="0 0 32 32" className={className} fill="none" stroke="currentColor" strokeWidth="1.5">
+        <rect x="3" y="6" width="26" height="20" rx="4" fill="rgba(16, 185, 129, 0.15)" stroke="#10b981" />
+        <text x="16" y="21" fill="#10b981" fontSize="13" fontWeight="bold" fontFamily="monospace" textAnchor="middle">
+          #9
+        </text>
+      </svg>
+    );
+  }
+
+  // Output: Decimal Display
+  if (type === 'DECIMAL_DISPLAY') {
+    return (
+      <svg viewBox="0 0 32 32" className={className} fill="none" stroke="currentColor" strokeWidth="1.5">
+        <rect x="2" y="4" width="28" height="24" rx="4" fill="#020617" stroke="#10b981" />
+        <text x="16" y="22" fill="#10b981" fontSize="15" fontWeight="black" fontFamily="monospace" textAnchor="middle">
+          88
+        </text>
+      </svg>
+    );
+  }
+
+  // Combinational: BCD to 7-Segment Decoder
+  if (type === 'BCD_TO_7SEG') {
+    return (
+      <svg viewBox="0 0 36 32" className={className} fill="none" stroke="currentColor" strokeWidth="1.5">
+        <rect x="2" y="4" width="32" height="24" rx="4" fill="rgba(56, 189, 248, 0.15)" stroke="#38bdf8" />
+        <text x="18" y="15" fill="#38bdf8" fontSize="8" fontWeight="bold" fontFamily="monospace" textAnchor="middle">
+          BCD
+        </text>
+        <text x="18" y="24" fill="#ef4444" fontSize="8" fontWeight="bold" fontFamily="monospace" textAnchor="middle">
+          7SEG
+        </text>
+      </svg>
+    );
+  }
+
+  // Combinational: Binary to Decimal Decoder
+  if (type === 'BIN_TO_DEC') {
+    return (
+      <svg viewBox="0 0 36 32" className={className} fill="none" stroke="currentColor" strokeWidth="1.5">
+        <rect x="2" y="4" width="32" height="24" rx="4" fill="rgba(168, 85, 247, 0.15)" stroke="#a855f7" />
+        <text x="18" y="15" fill="#a855f7" fontSize="8" fontWeight="bold" fontFamily="monospace" textAnchor="middle">
+          BIN
+        </text>
+        <text x="18" y="24" fill="#10b981" fontSize="8" fontWeight="bold" fontFamily="monospace" textAnchor="middle">
+          DEC
+        </text>
+      </svg>
+    );
+  }
+
+  // Combinational: Decimal to Binary Encoder
+  if (type === 'DEC_TO_BIN') {
+    return (
+      <svg viewBox="0 0 36 32" className={className} fill="none" stroke="currentColor" strokeWidth="1.5">
+        <rect x="2" y="4" width="32" height="24" rx="4" fill="rgba(168, 85, 247, 0.15)" stroke="#a855f7" />
+        <text x="18" y="15" fill="#10b981" fontSize="8" fontWeight="bold" fontFamily="monospace" textAnchor="middle">
+          DEC
+        </text>
+        <text x="18" y="24" fill="#a855f7" fontSize="8" fontWeight="bold" fontFamily="monospace" textAnchor="middle">
+          BIN
+        </text>
+      </svg>
+    );
+  }
+
   // Default fallback chip
   return (
     <svg viewBox="0 0 32 32" className={className} fill="none" stroke="currentColor" strokeWidth="2">

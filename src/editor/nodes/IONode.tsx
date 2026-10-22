@@ -2,6 +2,7 @@ import React from 'react';
 import { Handle, Position, NodeProps } from '@xyflow/react';
 import { useCircuitStore } from '../../store/circuitStore';
 import { getSignalColor } from '../../engine/signal';
+import { Plus, Minus } from 'lucide-react';
 
 export const IONode: React.FC<NodeProps> = ({ id, data, selected }) => {
   const compType = (data?.type as string) || 'SWITCH';
@@ -10,30 +11,62 @@ export const IONode: React.FC<NodeProps> = ({ id, data, selected }) => {
 
   const toggleSwitch = useCircuitStore((state) => state.toggleSwitch);
   const setButtonPressed = useCircuitStore((state) => state.setButtonPressed);
+  const updateComponentParams = useCircuitStore((state) => state.updateComponentParams);
   const pinValues = useCircuitStore((state) => state.simResult.pinValues);
   const removeComponent = useCircuitStore((state) => state.removeComponent);
 
+  const isMultiOutput = compType === 'DIP_SWITCH_4' || compType === 'DECIMAL_INPUT';
   const outSignal = pinValues[`${id}:out`] ?? (compType === 'CONST_HIGH' ? 1 : 0);
   const isHigh = outSignal === 1;
 
+  // DIP Switch 4-bit state: params.bits = [b0, b1, b2, b3] (0=LSB, 3=MSB)
+  const dipBits: number[] = Array.isArray(params.bits) ? params.bits : [0, 0, 0, 0];
+  const toggleDipBit = (index: number) => {
+    const nextBits = [...dipBits];
+    while (nextBits.length < 4) nextBits.push(0);
+    nextBits[index] = nextBits[index] === 1 ? 0 : 1;
+    updateComponentParams(id, { bits: nextBits });
+  };
+  const dipDecVal =
+    (dipBits[3] === 1 ? 8 : 0) +
+    (dipBits[2] === 1 ? 4 : 0) +
+    (dipBits[1] === 1 ? 2 : 0) +
+    (dipBits[0] === 1 ? 1 : 0);
+
+  // Decimal Input state
+  const decInputVal = Math.max(0, Math.min(15, Number(params.value) || 0));
+  const changeDecInput = (delta: number) => {
+    const next = Math.max(0, Math.min(15, decInputVal + delta));
+    updateComponentParams(id, { value: next });
+  };
+  const decBinStr = decInputVal.toString(2).padStart(4, '0');
+
   return (
     <div
-      className={`relative min-w-[120px] rounded-xl border bg-slate-900/95 backdrop-blur-md px-3 py-2.5 shadow-xl transition-all duration-150 ${
+      className={`relative rounded-xl border bg-slate-900/95 backdrop-blur-md px-3.5 py-2.5 shadow-xl transition-all duration-150 ${
+        isMultiOutput ? 'min-w-[190px]' : 'min-w-[120px]'
+      } ${
         selected
           ? 'border-sky-400 ring-2 ring-sky-500/30 shadow-sky-500/20'
           : 'border-slate-800 hover:border-slate-700'
       }`}
     >
-      <div className="flex items-center justify-between gap-2 mb-2">
-        <span className="text-[11px] font-mono font-semibold tracking-wide text-slate-300 truncate max-w-[85px]">
+      <div className="flex items-center justify-between gap-2 mb-2 border-b border-slate-800/80 pb-1">
+        <span className="text-[11px] font-mono font-semibold tracking-wide text-slate-300 truncate max-w-[110px]">
           {label}
         </span>
         <span
           className={`text-[9px] font-mono font-bold px-1.5 py-0.5 rounded ${
-            isHigh ? 'bg-emerald-950 text-emerald-400 border border-emerald-800' : 'bg-slate-800 text-slate-400'
+            !isMultiOutput && isHigh
+              ? 'bg-emerald-950 text-emerald-400 border border-emerald-800'
+              : 'bg-slate-800 text-slate-400'
           }`}
         >
-          {outSignal}
+          {isMultiOutput
+            ? compType === 'DIP_SWITCH_4'
+              ? `DEC: ${dipDecVal}`
+              : `VAL: ${decInputVal}`
+            : outSignal}
         </span>
       </div>
 
@@ -99,18 +132,175 @@ export const IONode: React.FC<NodeProps> = ({ id, data, selected }) => {
             0V (GND)
           </div>
         )}
+
+        {/* 4-Bit DIP Switch interactive display */}
+        {compType === 'DIP_SWITCH_4' && (
+          <div className="flex items-center justify-between gap-3 w-full py-0.5">
+            <div className="flex flex-col gap-1.5 flex-1">
+              <div className="flex items-center gap-1.5 justify-center bg-slate-950 p-2 rounded-lg border border-slate-800">
+                {[3, 2, 1, 0].map((bitIdx) => {
+                  const isActive = dipBits[bitIdx] === 1;
+                  return (
+                    <button
+                      key={bitIdx}
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        toggleDipBit(bitIdx);
+                      }}
+                      className={`flex flex-col items-center justify-center w-8 h-12 rounded border transition-all cursor-pointer ${
+                        isActive
+                          ? 'bg-emerald-500 border-emerald-300 text-slate-950 shadow-md shadow-emerald-500/30'
+                          : 'bg-slate-800 border-slate-700 text-slate-400 hover:bg-slate-750'
+                      }`}
+                      title={`Bit ${bitIdx} (${1 << bitIdx})`}
+                    >
+                      <span className="text-[8px] font-mono font-bold leading-none mb-1">
+                        B{bitIdx}
+                      </span>
+                      <div
+                        className={`w-4 h-5 rounded-sm flex items-center justify-center font-mono font-black text-xs ${
+                          isActive ? 'bg-slate-950 text-emerald-400' : 'bg-slate-900 text-slate-500'
+                        }`}
+                      >
+                        {isActive ? '1' : '0'}
+                      </div>
+                      <span className="text-[7px] font-mono mt-0.5 opacity-80 leading-none">
+                        {1 << bitIdx}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+              <div className="flex items-center justify-between px-1 text-[9px] font-mono text-slate-400">
+                <span>BIN: {dipBits[3]}{dipBits[2]}{dipBits[1]}{dipBits[0]}</span>
+                <span className="text-emerald-400 font-bold">= {dipDecVal}</span>
+              </div>
+            </div>
+
+            {/* Right Handles for B3..B0 */}
+            <div className="flex flex-col gap-1.5 -mr-3.5">
+              {[
+                { id: 'out3', label: 'B3', weight: '8' },
+                { id: 'out2', label: 'B2', weight: '4' },
+                { id: 'out1', label: 'B1', weight: '2' },
+                { id: 'out0', label: 'B0', weight: '1' },
+              ].map((pin) => {
+                const pinVal = pinValues[`${id}:${pin.id}`] ?? 'Z';
+                const isPinHigh = pinVal === 1;
+                return (
+                  <div key={pin.id} className="relative flex items-center justify-end">
+                    <span
+                      className={`text-[9px] font-mono font-bold mr-2 select-none ${
+                        isPinHigh ? 'text-emerald-400' : 'text-slate-500'
+                      }`}
+                    >
+                      {pin.label}
+                    </span>
+                    <Handle
+                      type="source"
+                      position={Position.Right}
+                      id={pin.id}
+                      className="!w-3 !h-3 !rounded-full !border-2 !border-slate-900 hover:!scale-125 !transition-transform"
+                      style={{ backgroundColor: getSignalColor(pinVal) }}
+                    />
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* Decimal Input Generator interactive display */}
+        {compType === 'DECIMAL_INPUT' && (
+          <div className="flex items-center justify-between gap-3 w-full py-0.5">
+            <div className="flex flex-col gap-1.5 flex-1">
+              <div className="flex items-center justify-center gap-2 bg-slate-950 p-2 rounded-lg border border-slate-800">
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    changeDecInput(-1);
+                  }}
+                  disabled={decInputVal <= 0}
+                  className="w-7 h-7 rounded-md bg-slate-800 hover:bg-slate-700 disabled:opacity-30 disabled:cursor-not-allowed text-slate-200 flex items-center justify-center cursor-pointer transition-colors"
+                  title="-1"
+                >
+                  <Minus className="w-3.5 h-3.5" />
+                </button>
+                <div className="w-12 h-10 flex flex-col items-center justify-center rounded bg-slate-900 border border-slate-800">
+                  <span className="font-mono text-xl font-black text-emerald-400 leading-none">
+                    {decInputVal}
+                  </span>
+                  <span className="text-[8px] font-mono text-slate-500 mt-0.5 leading-none">
+                    0x{decInputVal.toString(16).toUpperCase()}
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    changeDecInput(1);
+                  }}
+                  disabled={decInputVal >= 15}
+                  className="w-7 h-7 rounded-md bg-slate-800 hover:bg-slate-700 disabled:opacity-30 disabled:cursor-not-allowed text-slate-200 flex items-center justify-center cursor-pointer transition-colors"
+                  title="+1"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                </button>
+              </div>
+              <div className="flex items-center justify-between px-1 text-[9px] font-mono text-slate-400">
+                <span>BIN: {decBinStr}</span>
+                <span className="text-emerald-400 font-bold">4-Bit</span>
+              </div>
+            </div>
+
+            {/* Right Handles for B3..B0 */}
+            <div className="flex flex-col gap-1.5 -mr-3.5">
+              {[
+                { id: 'out3', label: 'B3', weight: '8' },
+                { id: 'out2', label: 'B2', weight: '4' },
+                { id: 'out1', label: 'B1', weight: '2' },
+                { id: 'out0', label: 'B0', weight: '1' },
+              ].map((pin) => {
+                const pinVal = pinValues[`${id}:${pin.id}`] ?? 'Z';
+                const isPinHigh = pinVal === 1;
+                return (
+                  <div key={pin.id} className="relative flex items-center justify-end">
+                    <span
+                      className={`text-[9px] font-mono font-bold mr-2 select-none ${
+                        isPinHigh ? 'text-emerald-400' : 'text-slate-500'
+                      }`}
+                    >
+                      {pin.label}
+                    </span>
+                    <Handle
+                      type="source"
+                      position={Position.Right}
+                      id={pin.id}
+                      className="!w-3 !h-3 !rounded-full !border-2 !border-slate-900 hover:!scale-125 !transition-transform"
+                      style={{ backgroundColor: getSignalColor(pinVal) }}
+                    />
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
       </div>
 
-      {/* Output Handle */}
-      <div className="absolute right-0 top-1/2 -translate-y-1/2 -right-[7px]">
-        <Handle
-          type="source"
-          position={Position.Right}
-          id="out"
-          className="!w-3.5 !h-3.5 !rounded-full !border-2 !border-slate-900 hover:!scale-125 !transition-transform"
-          style={{ backgroundColor: getSignalColor(outSignal) }}
-        />
-      </div>
+      {/* Output Handle for single-output IO nodes */}
+      {!isMultiOutput && (
+        <div className="absolute right-0 top-1/2 -translate-y-1/2 -right-[7px]">
+          <Handle
+            type="source"
+            position={Position.Right}
+            id="out"
+            className="!w-3.5 !h-3.5 !rounded-full !border-2 !border-slate-900 hover:!scale-125 !transition-transform"
+            style={{ backgroundColor: getSignalColor(outSignal) }}
+          />
+        </div>
+      )}
 
       {selected && (
         <button
@@ -118,7 +308,7 @@ export const IONode: React.FC<NodeProps> = ({ id, data, selected }) => {
             e.stopPropagation();
             removeComponent(id);
           }}
-          className="absolute -top-2.5 -right-2.5 w-5 h-5 rounded-full bg-rose-600 hover:bg-rose-500 text-white flex items-center justify-center text-xs shadow-md"
+          className="absolute -top-2.5 -right-2.5 w-5 h-5 rounded-full bg-rose-600 hover:bg-rose-500 text-white flex items-center justify-center text-xs shadow-md cursor-pointer"
           title="Sil"
         >
           ×

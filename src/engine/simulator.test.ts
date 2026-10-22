@@ -234,4 +234,86 @@ describe('Logic Circuit Simulator Engine', () => {
     expect(res.pinValues['and4:in3']).toBe(1);
     expect(res.pinValues['and4:out']).toBe(1);
   });
+
+  it('evaluates DECIMAL_INPUT -> BCD_TO_7SEG -> SEVEN_SEGMENT & DECIMAL_DISPLAY', () => {
+    const circuit: CircuitModel = {
+      version: 1,
+      mode: 'sandbox',
+      components: [
+        { id: 'decIn', type: 'DECIMAL_INPUT', x: 0, y: 0, params: { value: 7 } },
+        { id: 'bcd', type: 'BCD_TO_7SEG', x: 100, y: 0, params: {} },
+        { id: 'sevenSeg', type: 'SEVEN_SEGMENT', x: 250, y: 0, params: {} },
+        { id: 'decDisp', type: 'DECIMAL_DISPLAY', x: 250, y: 150, params: {} },
+      ],
+      wires: [
+        // decIn to bcd
+        { id: 'w1', from: { comp: 'decIn', pin: 'out3' }, to: { comp: 'bcd', pin: 'in3' } },
+        { id: 'w2', from: { comp: 'decIn', pin: 'out2' }, to: { comp: 'bcd', pin: 'in2' } },
+        { id: 'w3', from: { comp: 'decIn', pin: 'out1' }, to: { comp: 'bcd', pin: 'in1' } },
+        { id: 'w4', from: { comp: 'decIn', pin: 'out0' }, to: { comp: 'bcd', pin: 'in0' } },
+        // decIn to decDisp
+        { id: 'w5', from: { comp: 'decIn', pin: 'out3' }, to: { comp: 'decDisp', pin: 'in3' } },
+        { id: 'w6', from: { comp: 'decIn', pin: 'out2' }, to: { comp: 'decDisp', pin: 'in2' } },
+        { id: 'w7', from: { comp: 'decIn', pin: 'out1' }, to: { comp: 'decDisp', pin: 'in1' } },
+        { id: 'w8', from: { comp: 'decIn', pin: 'out0' }, to: { comp: 'decDisp', pin: 'in0' } },
+        // bcd to sevenSeg
+        { id: 'wa', from: { comp: 'bcd', pin: 'a' }, to: { comp: 'sevenSeg', pin: 'a' } },
+        { id: 'wb', from: { comp: 'bcd', pin: 'b' }, to: { comp: 'sevenSeg', pin: 'b' } },
+        { id: 'wc', from: { comp: 'bcd', pin: 'c' }, to: { comp: 'sevenSeg', pin: 'c' } },
+        { id: 'wd', from: { comp: 'bcd', pin: 'd' }, to: { comp: 'sevenSeg', pin: 'd' } },
+        { id: 'we', from: { comp: 'bcd', pin: 'e' }, to: { comp: 'sevenSeg', pin: 'e' } },
+        { id: 'wf', from: { comp: 'bcd', pin: 'f' }, to: { comp: 'sevenSeg', pin: 'f' } },
+        { id: 'wg', from: { comp: 'bcd', pin: 'g' }, to: { comp: 'sevenSeg', pin: 'g' } },
+      ],
+    };
+
+    // Value 7: binary 0111 -> bcd outputs a=1, b=1, c=1, d=0, e=0, f=0, g=0
+    const res = sim.evaluate(circuit);
+    expect(res.pinValues['decIn:out0']).toBe(1);
+    expect(res.pinValues['decIn:out1']).toBe(1);
+    expect(res.pinValues['decIn:out2']).toBe(1);
+    expect(res.pinValues['decIn:out3']).toBe(0);
+
+    expect(res.pinValues['sevenSeg:a']).toBe(1);
+    expect(res.pinValues['sevenSeg:b']).toBe(1);
+    expect(res.pinValues['sevenSeg:c']).toBe(1);
+    expect(res.pinValues['sevenSeg:d']).toBe(0);
+    expect(res.pinValues['sevenSeg:e']).toBe(0);
+    expect(res.pinValues['sevenSeg:f']).toBe(0);
+    expect(res.pinValues['sevenSeg:g']).toBe(0);
+    expect(res.componentStates['sevenSeg']?.segments?.a).toBe(1);
+
+    expect(res.componentStates['decDisp']?.value).toBe(7);
+  });
+
+  it('evaluates DIP_SWITCH_4, BIN_TO_DEC, and DEC_TO_BIN', () => {
+    const circuit: CircuitModel = {
+      version: 1,
+      mode: 'sandbox',
+      components: [
+        { id: 'dip', type: 'DIP_SWITCH_4', x: 0, y: 0, params: { bits: [1, 0, 1, 0] } }, // 5 (b0=1, b1=0, b2=1, b3=0)
+        { id: 'bin2dec', type: 'BIN_TO_DEC', x: 150, y: 0, params: {} },
+        { id: 'dec2bin', type: 'DEC_TO_BIN', x: 300, y: 0, params: {} },
+      ],
+      wires: [
+        { id: 'w0', from: { comp: 'dip', pin: 'out0' }, to: { comp: 'bin2dec', pin: 'in0' } },
+        { id: 'w1', from: { comp: 'dip', pin: 'out1' }, to: { comp: 'bin2dec', pin: 'in1' } },
+        { id: 'w2', from: { comp: 'dip', pin: 'out2' }, to: { comp: 'bin2dec', pin: 'in2' } },
+        { id: 'w3', from: { comp: 'dip', pin: 'out3' }, to: { comp: 'bin2dec', pin: 'in3' } },
+        // Connect decimal line 5 from bin2dec to dec2bin in5
+        { id: 'w5', from: { comp: 'bin2dec', pin: 'out5' }, to: { comp: 'dec2bin', pin: 'in5' } },
+      ],
+    };
+
+    const res = sim.evaluate(circuit);
+    expect(res.pinValues['bin2dec:out5']).toBe(1);
+    expect(res.pinValues['bin2dec:out4']).toBe(0);
+    expect(res.pinValues['bin2dec:out6']).toBe(0);
+
+    // dec2bin should encode input 5 to binary 0101
+    expect(res.pinValues['dec2bin:out0']).toBe(1);
+    expect(res.pinValues['dec2bin:out1']).toBe(0);
+    expect(res.pinValues['dec2bin:out2']).toBe(1);
+    expect(res.pinValues['dec2bin:out3']).toBe(0);
+  });
 });

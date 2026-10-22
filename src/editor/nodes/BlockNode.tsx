@@ -33,9 +33,9 @@ export const BlockNode: React.FC<NodeProps> = ({ id, data, selected }) => {
         </span>
       </div>
 
-      <div className="flex justify-between items-center min-h-[50px] gap-6">
+      <div className="flex justify-between items-center min-h-[50px] gap-4">
         {/* Left Inputs */}
-        <div className="flex flex-col gap-2.5">
+        <div className="flex flex-col gap-1.5">
           {inPins.map((pin) => {
             const pinVal = pinValues[`${id}:${pin.id}`] ?? 'Z';
             const pinColor = getSignalColor(pinVal);
@@ -57,8 +57,31 @@ export const BlockNode: React.FC<NodeProps> = ({ id, data, selected }) => {
           })}
         </div>
 
+        {/* Center Conversion Badge / Indicator */}
+        {compType === 'BCD_TO_7SEG' && (
+          <div className="flex flex-col items-center justify-center px-2 py-1.5 rounded-lg bg-slate-950 border border-slate-800 text-center shadow-inner">
+            <span className="text-[10px] font-mono font-bold text-sky-400">BCD (4b)</span>
+            <span className="text-[9px] text-slate-500 font-bold my-0.5">➔</span>
+            <span className="text-[10px] font-mono font-bold text-red-400">7-SEG</span>
+          </div>
+        )}
+        {compType === 'BIN_TO_DEC' && (
+          <div className="flex flex-col items-center justify-center px-2 py-1.5 rounded-lg bg-slate-950 border border-slate-800 text-center shadow-inner">
+            <span className="text-[10px] font-mono font-bold text-sky-400">BIN (4b)</span>
+            <span className="text-[9px] text-slate-500 font-bold my-0.5">➔</span>
+            <span className="text-[10px] font-mono font-bold text-emerald-400">DEC (0-9)</span>
+          </div>
+        )}
+        {compType === 'DEC_TO_BIN' && (
+          <div className="flex flex-col items-center justify-center px-2 py-1.5 rounded-lg bg-slate-950 border border-slate-800 text-center shadow-inner">
+            <span className="text-[10px] font-mono font-bold text-emerald-400">DEC (0-9)</span>
+            <span className="text-[9px] text-slate-500 font-bold my-0.5">➔</span>
+            <span className="text-[10px] font-mono font-bold text-sky-400">BIN (4b)</span>
+          </div>
+        )}
+
         {/* Right Outputs */}
-        <div className="flex flex-col gap-2.5">
+        <div className="flex flex-col gap-1.5">
           {outPins.map((pin) => {
             const pinVal = pinValues[`${id}:${pin.id}`] ?? 'Z';
             const pinColor = getSignalColor(pinVal);

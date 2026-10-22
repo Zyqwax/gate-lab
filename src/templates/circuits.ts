@@ -204,6 +204,54 @@ export const TEMPLATES: CircuitTemplate[] = [
       ],
     },
   },
+  {
+    id: 'bcd-7segment',
+    name: 'BCD to 7-Segment & Decimal Display',
+    category: 'Displays & Converters',
+    description: '4-bit BCD numeric input decoded into 7-segment display (a-g) and digital numeric readout.',
+    nameI18n: {
+      en: 'BCD to 7-Segment & Decimal Display',
+      tr: 'BCD → 7-Segment Ekran & Sayısal Gösterge',
+    },
+    categoryI18n: {
+      en: 'Displays & Converters',
+      tr: 'Göstergeler & Dönüştürücüler',
+    },
+    descriptionI18n: {
+      en: '4-bit BCD numeric input decoded into 7-segment display (a-g) and digital numeric readout.',
+      tr: '4-bit BCD sayı girişi, BCD çözücü entegresi üzerinden 7-segment ekrana (a-g) ve sayısal göstergeye iletilir.',
+    },
+    circuit: {
+      version: 1,
+      mode: 'sandbox',
+      components: [
+        { id: 'dec_in', type: 'DECIMAL_INPUT', x: 60, y: 180, params: { value: 7, label: 'Sayı Girişi' } },
+        { id: 'bcd_dec', type: 'BCD_TO_7SEG', x: 380, y: 120, params: { label: 'BCD Çözücü' } },
+        { id: 'disp_7seg', type: 'SEVEN_SEGMENT', x: 740, y: 80, params: { label: '7-Segment Ekran', color: '#ef4444' } },
+        { id: 'disp_num', type: 'DECIMAL_DISPLAY', x: 740, y: 350, params: { label: 'Sayısal Ekran', color: '#10b981' } },
+      ],
+      wires: [
+        // dec_in to bcd_dec
+        { id: 'w_in_b3', from: { comp: 'dec_in', pin: 'out3' }, to: { comp: 'bcd_dec', pin: 'in3' } },
+        { id: 'w_in_b2', from: { comp: 'dec_in', pin: 'out2' }, to: { comp: 'bcd_dec', pin: 'in2' } },
+        { id: 'w_in_b1', from: { comp: 'dec_in', pin: 'out1' }, to: { comp: 'bcd_dec', pin: 'in1' } },
+        { id: 'w_in_b0', from: { comp: 'dec_in', pin: 'out0' }, to: { comp: 'bcd_dec', pin: 'in0' } },
+        // dec_in to disp_num
+        { id: 'w_num_b3', from: { comp: 'dec_in', pin: 'out3' }, to: { comp: 'disp_num', pin: 'in3' } },
+        { id: 'w_num_b2', from: { comp: 'dec_in', pin: 'out2' }, to: { comp: 'disp_num', pin: 'in2' } },
+        { id: 'w_num_b1', from: { comp: 'dec_in', pin: 'out1' }, to: { comp: 'disp_num', pin: 'in1' } },
+        { id: 'w_num_b0', from: { comp: 'dec_in', pin: 'out0' }, to: { comp: 'disp_num', pin: 'in0' } },
+        // bcd_dec to disp_7seg
+        { id: 'w_seg_a', from: { comp: 'bcd_dec', pin: 'a' }, to: { comp: 'disp_7seg', pin: 'a' } },
+        { id: 'w_seg_b', from: { comp: 'bcd_dec', pin: 'b' }, to: { comp: 'disp_7seg', pin: 'b' } },
+        { id: 'w_seg_c', from: { comp: 'bcd_dec', pin: 'c' }, to: { comp: 'disp_7seg', pin: 'c' } },
+        { id: 'w_seg_d', from: { comp: 'bcd_dec', pin: 'd' }, to: { comp: 'disp_7seg', pin: 'd' } },
+        { id: 'w_seg_e', from: { comp: 'bcd_dec', pin: 'e' }, to: { comp: 'disp_7seg', pin: 'e' } },
+        { id: 'w_seg_f', from: { comp: 'bcd_dec', pin: 'f' }, to: { comp: 'disp_7seg', pin: 'f' } },
+        { id: 'w_seg_g', from: { comp: 'bcd_dec', pin: 'g' }, to: { comp: 'disp_7seg', pin: 'g' } },
+      ],
+    },
+  },
 ];
 
 /**

@@ -96,11 +96,11 @@ export const Inspector: React.FC<InspectorProps> = ({ onClose }) => {
               </div>
             )}
 
-            {/* LED Color Picker */}
-            {comp.type === 'LED' && (
+            {/* Color Picker for LED, 7-Segment and Decimal Display */}
+            {(comp.type === 'LED' || comp.type === 'SEVEN_SEGMENT' || comp.type === 'DECIMAL_DISPLAY') && (
               <div>
                 <label className="text-[11px] font-medium text-slate-400 flex items-center gap-1 mb-2">
-                  <PaletteIcon className="w-3 h-3" /> {t('ledColor')}
+                  <PaletteIcon className="w-3 h-3" /> {comp.type === 'LED' ? t('ledColor') : t('displayColor')}
                 </label>
                 <div className="flex items-center gap-2">
                   {ledColors.map((color) => (
@@ -113,6 +113,34 @@ export const Inspector: React.FC<InspectorProps> = ({ onClose }) => {
                       style={{ backgroundColor: color }}
                     />
                   ))}
+                </div>
+              </div>
+            )}
+
+            {/* Decimal Input Value Selector */}
+            {comp.type === 'DECIMAL_INPUT' && (
+              <div>
+                <div className="flex justify-between items-center mb-1.5">
+                  <label className="text-[11px] font-medium text-slate-400">
+                    {t('decimalValue')} (0 - 15)
+                  </label>
+                  <span className="font-mono text-xs font-bold text-emerald-400">
+                    {params.value ?? 0}
+                  </span>
+                </div>
+                <input
+                  type="range"
+                  min="0"
+                  max="15"
+                  value={params.value ?? 0}
+                  onChange={(e) =>
+                    updateComponentParams(selectedId!, { value: Number(e.target.value) })
+                  }
+                  className="w-full accent-emerald-500 cursor-pointer"
+                />
+                <div className="flex justify-between text-[9px] font-mono text-slate-500 mt-1">
+                  <span>0 (0000)</span>
+                  <span>15 (1111)</span>
                 </div>
               </div>
             )}

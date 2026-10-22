@@ -286,6 +286,64 @@ export const COMPONENT_DEFINITIONS: ComponentDef[] = [
       outputs: { out: 0 },
     }),
   },
+  {
+    type: 'DIP_SWITCH_4',
+    category: 'io',
+    name: '4-Bit DIP Switch',
+    nameI18n: { en: '4-Bit DIP Switch', tr: '4-Bit İkili Anahtar (DIP Switch)' },
+    description: '4-bit binary switch block with individual toggles for each bit (0-3)',
+    descriptionI18n: {
+      en: '4-bit binary switch block with individual toggles for each bit (0-3)',
+      tr: '0-3 arası bitler için bağımsız anahtarlarla 4-bit ikili (binary) çıkış sağlar'
+    },
+    pins: [
+      { id: 'out3', dir: 'out', label: 'B3', description: 'Bit 3 Output (MSB - 8s)', descriptionI18n: { en: 'Bit 3 Output (MSB - 8s)', tr: 'Bit 3 Çıkışı (MSB - 8ler)' } },
+      { id: 'out2', dir: 'out', label: 'B2', description: 'Bit 2 Output (4s)', descriptionI18n: { en: 'Bit 2 Output (4s)', tr: 'Bit 2 Çıkışı (4ler)' } },
+      { id: 'out1', dir: 'out', label: 'B1', description: 'Bit 1 Output (2s)', descriptionI18n: { en: 'Bit 1 Output (2s)', tr: 'Bit 1 Çıkışı (2ler)' } },
+      { id: 'out0', dir: 'out', label: 'B0', description: 'Bit 0 Output (LSB - 1s)', descriptionI18n: { en: 'Bit 0 Output (LSB - 1s)', tr: 'Bit 0 Çıkışı (LSB - 1ler)' } },
+    ],
+    defaultParams: { label: 'DIP Switch', bits: [0, 0, 0, 0] },
+    eval: (_inputs, _state, params) => {
+      const bits = Array.isArray(params?.bits) ? params.bits : [0, 0, 0, 0];
+      return {
+        outputs: {
+          out0: bits[0] === 1 ? 1 : 0,
+          out1: bits[1] === 1 ? 1 : 0,
+          out2: bits[2] === 1 ? 1 : 0,
+          out3: bits[3] === 1 ? 1 : 0,
+        },
+      };
+    },
+  },
+  {
+    type: 'DECIMAL_INPUT',
+    category: 'io',
+    name: 'Decimal Input',
+    nameI18n: { en: 'Decimal Input', tr: 'Ondalık Sayı Girişi (Decimal Generator)' },
+    description: 'Select a decimal number (0-15) and output it as 4-bit binary lines',
+    descriptionI18n: {
+      en: 'Select a decimal number (0-15) and output it as 4-bit binary lines',
+      tr: '0-15 arası bir ondalık sayı seçin; doğrudan 4-bit ikili sinyal olarak çıkış versin'
+    },
+    pins: [
+      { id: 'out3', dir: 'out', label: 'B3', description: 'Bit 3 Output (MSB - 8s)', descriptionI18n: { en: 'Bit 3 Output (MSB - 8s)', tr: 'Bit 3 Çıkışı (MSB - 8ler)' } },
+      { id: 'out2', dir: 'out', label: 'B2', description: 'Bit 2 Output (4s)', descriptionI18n: { en: 'Bit 2 Output (4s)', tr: 'Bit 2 Çıkışı (4ler)' } },
+      { id: 'out1', dir: 'out', label: 'B1', description: 'Bit 1 Output (2s)', descriptionI18n: { en: 'Bit 1 Output (2s)', tr: 'Bit 1 Çıkışı (2ler)' } },
+      { id: 'out0', dir: 'out', label: 'B0', description: 'Bit 0 Output (LSB - 1s)', descriptionI18n: { en: 'Bit 0 Output (LSB - 1s)', tr: 'Bit 0 Çıkışı (LSB - 1ler)' } },
+    ],
+    defaultParams: { label: 'Dec Input', value: 0 },
+    eval: (_inputs, _state, params) => {
+      const val = Math.max(0, Math.min(15, Number(params?.value) || 0));
+      return {
+        outputs: {
+          out0: (val & 1) ? 1 : 0,
+          out1: (val & 2) ? 1 : 0,
+          out2: (val & 4) ? 1 : 0,
+          out3: (val & 8) ? 1 : 0,
+        },
+      };
+    },
+  },
 
   // ================= OUTPUTS & DISPLAYS =================
   {
@@ -337,7 +395,7 @@ export const COMPONENT_DEFINITIONS: ComponentDef[] = [
       { id: 'f', dir: 'in', label: 'f', description: 'Segment f', descriptionI18n: { en: 'Segment f', tr: 'Segment f' } },
       { id: 'g', dir: 'in', label: 'g', description: 'Segment g', descriptionI18n: { en: 'Segment g', tr: 'Segment g' } },
     ],
-    defaultParams: { label: '7-Seg' },
+    defaultParams: { label: '7-Seg', color: '#ef4444' },
     defaultState: { segments: { a: 0, b: 0, c: 0, d: 0, e: 0, f: 0, g: 0 } },
     eval: (inputs) => ({
       outputs: {},
@@ -354,8 +412,182 @@ export const COMPONENT_DEFINITIONS: ComponentDef[] = [
       },
     }),
   },
+  {
+    type: 'DECIMAL_DISPLAY',
+    category: 'display',
+    name: 'Decimal Display',
+    nameI18n: { en: 'Decimal Display', tr: 'Sayısal Gösterge (Decimal Display)' },
+    description: 'Displays 4-bit binary value as a numeric decimal (0-15) and hex readout',
+    descriptionI18n: {
+      en: 'Displays 4-bit binary value as a numeric decimal (0-15) and hex readout',
+      tr: '4-bit ikili girişi büyük ve net bir ondalık sayı (0-15) ve onaltılık (Hex) olarak görüntüler'
+    },
+    pins: [
+      { id: 'in3', dir: 'in', label: 'B3', description: 'Bit 3 (MSB - 8s)', descriptionI18n: { en: 'Bit 3 (MSB - 8s)', tr: 'Bit 3 (MSB - 8ler)' } },
+      { id: 'in2', dir: 'in', label: 'B2', description: 'Bit 2 (4s)', descriptionI18n: { en: 'Bit 2 (4s)', tr: 'Bit 2 (4ler)' } },
+      { id: 'in1', dir: 'in', label: 'B1', description: 'Bit 1 (2s)', descriptionI18n: { en: 'Bit 1 (2s)', tr: 'Bit 1 (2ler)' } },
+      { id: 'in0', dir: 'in', label: 'B0', description: 'Bit 0 (LSB - 1s)', descriptionI18n: { en: 'Bit 0 (LSB - 1s)', tr: 'Bit 0 (LSB - 1ler)' } },
+    ],
+    defaultParams: { label: 'Dec Display', color: '#10b981' },
+    defaultState: { value: 0 },
+    eval: (inputs) => {
+      const b0 = inputs['in0'] === 1 ? 1 : 0;
+      const b1 = inputs['in1'] === 1 ? 1 : 0;
+      const b2 = inputs['in2'] === 1 ? 1 : 0;
+      const b3 = inputs['in3'] === 1 ? 1 : 0;
+      const val = (b3 << 3) | (b2 << 2) | (b1 << 1) | b0;
+      return {
+        outputs: {},
+        state: { value: val },
+      };
+    },
+  },
 
   // ================= COMBINATIONAL BLOCKS =================
+  {
+    type: 'BCD_TO_7SEG',
+    category: 'block',
+    name: 'BCD to 7-Segment Decoder',
+    nameI18n: { en: 'BCD to 7-Segment Decoder', tr: 'BCD → 7-Segment Çözücü' },
+    description: 'Decodes 4-bit binary/BCD input to 7-segment display lines (a-g)',
+    descriptionI18n: {
+      en: 'Decodes 4-bit binary/BCD input to 7-segment display lines (a-g)',
+      tr: '4-bit ikili/BCD girişini 7-segment ekran çıkışlarına (a-g) dönüştürür'
+    },
+    pins: [
+      { id: 'in3', dir: 'in', label: 'B3', description: 'Bit 3 (MSB - 8s)', descriptionI18n: { en: 'Bit 3 (MSB - 8s)', tr: 'Bit 3 (MSB - 8ler)' } },
+      { id: 'in2', dir: 'in', label: 'B2', description: 'Bit 2 (4s)', descriptionI18n: { en: 'Bit 2 (4s)', tr: 'Bit 2 (4ler)' } },
+      { id: 'in1', dir: 'in', label: 'B1', description: 'Bit 1 (2s)', descriptionI18n: { en: 'Bit 1 (2s)', tr: 'Bit 1 (2ler)' } },
+      { id: 'in0', dir: 'in', label: 'B0', description: 'Bit 0 (LSB - 1s)', descriptionI18n: { en: 'Bit 0 (LSB - 1s)', tr: 'Bit 0 (LSB - 1ler)' } },
+      { id: 'a', dir: 'out', label: 'a', description: 'Segment a', descriptionI18n: { en: 'Segment a', tr: 'Segment a' } },
+      { id: 'b', dir: 'out', label: 'b', description: 'Segment b', descriptionI18n: { en: 'Segment b', tr: 'Segment b' } },
+      { id: 'c', dir: 'out', label: 'c', description: 'Segment c', descriptionI18n: { en: 'Segment c', tr: 'Segment c' } },
+      { id: 'd', dir: 'out', label: 'd', description: 'Segment d', descriptionI18n: { en: 'Segment d', tr: 'Segment d' } },
+      { id: 'e', dir: 'out', label: 'e', description: 'Segment e', descriptionI18n: { en: 'Segment e', tr: 'Segment e' } },
+      { id: 'f', dir: 'out', label: 'f', description: 'Segment f', descriptionI18n: { en: 'Segment f', tr: 'Segment f' } },
+      { id: 'g', dir: 'out', label: 'g', description: 'Segment g', descriptionI18n: { en: 'Segment g', tr: 'Segment g' } },
+    ],
+    defaultParams: { label: 'BCD→7SEG' },
+    eval: (inputs) => {
+      const b0 = inputs['in0'] === 1 ? 1 : 0;
+      const b1 = inputs['in1'] === 1 ? 1 : 0;
+      const b2 = inputs['in2'] === 1 ? 1 : 0;
+      const b3 = inputs['in3'] === 1 ? 1 : 0;
+      const val = (b3 << 3) | (b2 << 2) | (b1 << 1) | b0;
+
+      const table: Record<number, Record<string, number>> = {
+        0:  { a: 1, b: 1, c: 1, d: 1, e: 1, f: 1, g: 0 },
+        1:  { a: 0, b: 1, c: 1, d: 0, e: 0, f: 0, g: 0 },
+        2:  { a: 1, b: 1, c: 0, d: 1, e: 1, f: 0, g: 1 },
+        3:  { a: 1, b: 1, c: 1, d: 1, e: 0, f: 0, g: 1 },
+        4:  { a: 0, b: 1, c: 1, d: 0, e: 0, f: 1, g: 1 },
+        5:  { a: 1, b: 0, c: 1, d: 1, e: 0, f: 1, g: 1 },
+        6:  { a: 1, b: 0, c: 1, d: 1, e: 1, f: 1, g: 1 },
+        7:  { a: 1, b: 1, c: 1, d: 0, e: 0, f: 0, g: 0 },
+        8:  { a: 1, b: 1, c: 1, d: 1, e: 1, f: 1, g: 1 },
+        9:  { a: 1, b: 1, c: 1, d: 1, e: 0, f: 1, g: 1 },
+        10: { a: 1, b: 1, c: 1, d: 0, e: 1, f: 1, g: 1 }, // A
+        11: { a: 0, b: 0, c: 1, d: 1, e: 1, f: 1, g: 1 }, // b
+        12: { a: 1, b: 0, c: 0, d: 1, e: 1, f: 1, g: 0 }, // C
+        13: { a: 0, b: 1, c: 1, d: 1, e: 1, f: 0, g: 1 }, // d
+        14: { a: 1, b: 0, c: 0, d: 1, e: 1, f: 1, g: 1 }, // E
+        15: { a: 1, b: 0, c: 0, d: 0, e: 1, f: 1, g: 1 }, // F
+      };
+
+      const segs = table[val] ?? { a: 0, b: 0, c: 0, d: 0, e: 0, f: 0, g: 0 };
+      return {
+        outputs: {
+          a: segs.a ? 1 : 0,
+          b: segs.b ? 1 : 0,
+          c: segs.c ? 1 : 0,
+          d: segs.d ? 1 : 0,
+          e: segs.e ? 1 : 0,
+          f: segs.f ? 1 : 0,
+          g: segs.g ? 1 : 0,
+        },
+      };
+    },
+  },
+  {
+    type: 'BIN_TO_DEC',
+    category: 'block',
+    name: 'Binary to Decimal Decoder',
+    nameI18n: { en: 'Binary to Decimal Decoder', tr: 'İkili → Ondalık Çözücü (4→10)' },
+    description: '4-bit binary to 10 decimal lines (0-9) active high decoder',
+    descriptionI18n: {
+      en: '4-bit binary to 10 decimal lines (0-9) active high decoder',
+      tr: '4-bit ikili girişi 10 adet aktif-yüksek ondalık (0-9) çıkış hattına dönüştürür'
+    },
+    pins: [
+      { id: 'in3', dir: 'in', label: 'B3', description: 'Bit 3 (MSB)', descriptionI18n: { en: 'Bit 3 (MSB)', tr: 'Bit 3 (MSB)' } },
+      { id: 'in2', dir: 'in', label: 'B2', description: 'Bit 2', descriptionI18n: { en: 'Bit 2', tr: 'Bit 2' } },
+      { id: 'in1', dir: 'in', label: 'B1', description: 'Bit 1', descriptionI18n: { en: 'Bit 1', tr: 'Bit 1' } },
+      { id: 'in0', dir: 'in', label: 'B0', description: 'Bit 0 (LSB)', descriptionI18n: { en: 'Bit 0 (LSB)', tr: 'Bit 0 (LSB)' } },
+      ...Array.from({ length: 10 }, (_, i) => ({
+        id: `out${i}`,
+        dir: 'out' as const,
+        label: `${i}`,
+        description: `Decimal Output ${i}`,
+        descriptionI18n: { en: `Decimal Output ${i}`, tr: `Ondalık Çıkış ${i}` },
+      })),
+    ],
+    defaultParams: { label: 'BIN→DEC' },
+    eval: (inputs) => {
+      const b0 = inputs['in0'] === 1 ? 1 : 0;
+      const b1 = inputs['in1'] === 1 ? 1 : 0;
+      const b2 = inputs['in2'] === 1 ? 1 : 0;
+      const b3 = inputs['in3'] === 1 ? 1 : 0;
+      const val = (b3 << 3) | (b2 << 2) | (b1 << 1) | b0;
+
+      const outputs: Record<string, Signal> = {};
+      for (let i = 0; i < 10; i++) {
+        outputs[`out${i}`] = val === i ? 1 : 0;
+      }
+      return { outputs };
+    },
+  },
+  {
+    type: 'DEC_TO_BIN',
+    category: 'block',
+    name: 'Decimal to Binary Encoder',
+    nameI18n: { en: 'Decimal to Binary Encoder', tr: 'Ondalık → İkili Kodlayıcı (10→4)' },
+    description: '10 decimal lines (0-9) to 4-bit binary priority encoder',
+    descriptionI18n: {
+      en: '10 decimal lines (0-9) to 4-bit binary priority encoder',
+      tr: '10 ondalık hattı (0-9) 4-bit ikili (binary) çıkışa dönüştüren öncelikli kodlayıcı'
+    },
+    pins: [
+      ...Array.from({ length: 10 }, (_, i) => ({
+        id: `in${9 - i}`,
+        dir: 'in' as const,
+        label: `${9 - i}`,
+        description: `Decimal Input ${9 - i}`,
+        descriptionI18n: { en: `Decimal Input ${9 - i}`, tr: `Ondalık Giriş ${9 - i}` },
+      })),
+      { id: 'out3', dir: 'out', label: 'B3', description: 'Bit 3 (MSB)', descriptionI18n: { en: 'Bit 3 (MSB)', tr: 'Bit 3 (MSB)' } },
+      { id: 'out2', dir: 'out', label: 'B2', description: 'Bit 2', descriptionI18n: { en: 'Bit 2', tr: 'Bit 2' } },
+      { id: 'out1', dir: 'out', label: 'B1', description: 'Bit 1', descriptionI18n: { en: 'Bit 1', tr: 'Bit 1' } },
+      { id: 'out0', dir: 'out', label: 'B0', description: 'Bit 0 (LSB)', descriptionI18n: { en: 'Bit 0 (LSB)', tr: 'Bit 0 (LSB)' } },
+    ],
+    defaultParams: { label: 'DEC→BIN' },
+    eval: (inputs) => {
+      let activeVal = 0;
+      for (let i = 9; i >= 1; i--) {
+        if (inputs[`in${i}`] === 1) {
+          activeVal = i;
+          break;
+        }
+      }
+      return {
+        outputs: {
+          out0: (activeVal & 1) ? 1 : 0,
+          out1: (activeVal & 2) ? 1 : 0,
+          out2: (activeVal & 4) ? 1 : 0,
+          out3: (activeVal & 8) ? 1 : 0,
+        },
+      };
+    },
+  },
   {
     type: 'HALF_ADDER',
     category: 'block',
