@@ -15,6 +15,7 @@ import {
   ShieldCheck,
   TableProperties,
   Share2,
+  BookOpen,
 } from 'lucide-react';
 
 export default function LandingPage() {
@@ -65,6 +66,14 @@ export default function LandingPage() {
             </div>
 
             <Link
+              href="/docs"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-800 text-xs font-semibold text-slate-300 hover:text-white hover:bg-slate-900 transition-colors"
+            >
+              <BookOpen className="w-3.5 h-3.5 text-emerald-400" />
+              <span>{locale === 'tr' ? 'Rehber' : 'Docs'}</span>
+            </Link>
+
+            <Link
               href="/dashboard"
               className="flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-slate-950 font-bold text-xs shadow-lg shadow-emerald-600/30 transition-all hover:scale-[1.02] active:scale-[0.98]"
             >
@@ -101,6 +110,14 @@ export default function LandingPage() {
             >
               <Zap className="w-4 h-4 fill-current" />
               <span>{t('createNewCircuit')}</span>
+            </Link>
+
+            <Link
+              href="/docs"
+              className="flex items-center gap-2 px-6 py-3.5 rounded-xl bg-slate-900/90 hover:bg-slate-800 text-emerald-400 border border-emerald-500/30 font-semibold text-sm transition-all hover:border-emerald-500/60 shadow-lg"
+            >
+              <BookOpen className="w-4 h-4" />
+              <span>{locale === 'tr' ? 'Görsel Rehber & Dokümantasyon' : 'Docs & Tutorials'}</span>
             </Link>
 
             <Link

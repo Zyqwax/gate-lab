@@ -96,11 +96,11 @@ export const Inspector: React.FC<InspectorProps> = ({ onClose }) => {
               </div>
             )}
 
-            {/* Color Picker for LED, 7-Segment and Decimal Display */}
-            {(comp.type === 'LED' || comp.type === 'SEVEN_SEGMENT' || comp.type === 'DECIMAL_DISPLAY') && (
+            {/* Color Picker for LED, 7-Segment, Decimal Display, and LED Bar */}
+            {(comp.type === 'LED' || comp.type === 'SEVEN_SEGMENT' || comp.type === 'DECIMAL_DISPLAY' || comp.type === 'LED_BAR_8') && (
               <div>
                 <label className="text-[11px] font-medium text-slate-400 flex items-center gap-1 mb-2">
-                  <PaletteIcon className="w-3 h-3" /> {comp.type === 'LED' ? t('ledColor') : t('displayColor')}
+                  <PaletteIcon className="w-3 h-3" /> {comp.type === 'LED' ? t('ledColor') : comp.type === 'LED_BAR_8' ? t('ledBarColor') : t('displayColor')}
                 </label>
                 <div className="flex items-center gap-2">
                   {ledColors.map((color) => (
@@ -141,6 +141,68 @@ export const Inspector: React.FC<InspectorProps> = ({ onClose }) => {
                 <div className="flex justify-between text-[9px] font-mono text-slate-500 mt-1">
                   <span>0 (0000)</span>
                   <span>15 (1111)</span>
+                </div>
+              </div>
+            )}
+
+            {/* 8-Bit Byte Input & Bus Constant Value Selector */}
+            {(comp.type === 'BYTE_INPUT' || comp.type === 'BUS_CONST') && (
+              <div>
+                <div className="flex justify-between items-center mb-1.5">
+                  <label className="text-[11px] font-medium text-slate-400">
+                    {comp.type === 'BYTE_INPUT' ? t('byteValue') : t('busConstant')}
+                  </label>
+                  <span className="font-mono text-xs font-bold text-emerald-400">
+                    0x{(Number(params.value) || 0).toString(16).toUpperCase().padStart(2, '0')} ({params.value ?? 0})
+                  </span>
+                </div>
+                <input
+                  type="range"
+                  min="0"
+                  max="255"
+                  value={params.value ?? 0}
+                  onChange={(e) => {
+                    const val = Number(e.target.value);
+                    const update: Record<string, any> = { value: val };
+                    if (comp.type === 'BUS_CONST') {
+                      update.label = `0x${val.toString(16).toUpperCase().padStart(2, '0')}`;
+                    }
+                    updateComponentParams(selectedId!, update);
+                  }}
+                  className="w-full accent-emerald-500 cursor-pointer"
+                />
+                <div className="flex justify-between text-[9px] font-mono text-slate-500 mt-1">
+                  <span>0x00 (0)</span>
+                  <span>0xFF (255)</span>
+                </div>
+              </div>
+            )}
+
+            {/* 8-Bit Byte Display Mode Selector */}
+            {comp.type === 'BYTE_DISPLAY' && (
+              <div>
+                <label className="text-[11px] font-medium text-slate-400 mb-1.5 block">
+                  {t('displayMode')}
+                </label>
+                <div className="grid grid-cols-3 gap-1.5">
+                  {(['HEX', 'DEC', 'BIN'] as const).map((m) => {
+                    const active = (params.mode || 'HEX') === m;
+                    const modeLabel = m === 'HEX' ? t('modeHex') : m === 'DEC' ? t('modeDec') : t('modeBin');
+                    return (
+                      <button
+                        key={m}
+                        type="button"
+                        onClick={() => updateComponentParams(selectedId!, { mode: m })}
+                        className={`py-1.5 px-1 rounded-lg text-[10px] font-mono font-bold transition-all cursor-pointer text-center ${
+                          active
+                            ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 shadow-sm'
+                            : 'bg-slate-950 border border-slate-800 text-slate-400 hover:text-white hover:bg-slate-800'
+                        }`}
+                      >
+                        {modeLabel}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
             )}

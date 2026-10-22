@@ -34,6 +34,7 @@ import {
   Globe,
   Scissors,
   MousePointer,
+  BookOpen,
 } from "lucide-react";
 import { useTranslation } from "../i18n";
 
@@ -389,6 +390,18 @@ export const Toolbar: React.FC<ToolbarProps> = ({
           <span className="hidden md:inline">{t("truthTable")}</span>
         </button>
 
+        {/* Docs & Tutorials link (opens in new tab) */}
+        <Link
+          href="/docs"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-slate-800/80 hover:bg-slate-700 border border-slate-700/60 text-slate-300 hover:text-white text-xs font-semibold transition-colors cursor-pointer"
+          title={locale === 'tr' ? 'Rehber ve Dokümantasyon (Yeni Sekme)' : 'Docs & Tutorials (New Tab)'}
+        >
+          <BookOpen className="w-3.5 h-3.5 text-emerald-400" />
+          <span className="hidden xl:inline">{locale === 'tr' ? 'Rehber' : 'Docs'}</span>
+        </Link>
+
         {/* Right Inspector Panel Toggle */}
         <button
           onClick={onToggleInspector}
@@ -498,6 +511,17 @@ export const Toolbar: React.FC<ToolbarProps> = ({
                 <Upload className="w-3.5 h-3.5 text-emerald-400" />
                 <span>{t("importJSON")}</span>
               </button>
+
+              <Link
+                href="/docs"
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={() => setIsMoreMenuOpen(false)}
+                className="w-full flex items-center gap-2 px-3 py-2 hover:bg-slate-800 hover:text-white transition-colors text-left cursor-pointer"
+              >
+                <BookOpen className="w-3.5 h-3.5 text-emerald-400" />
+                <span>{locale === 'tr' ? 'Rehber & Dokümanlar' : 'Docs & Tutorials'}</span>
+              </Link>
 
               <div className="my-1 border-t border-slate-800" />
 

@@ -22,6 +22,7 @@ import {
   Cpu,
   Search,
   Sparkles,
+  BookOpen,
 } from 'lucide-react';
 
 export default function DashboardPage() {
@@ -106,6 +107,14 @@ export default function DashboardPage() {
                 TR
               </button>
             </div>
+
+            <Link
+              href="/docs"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-800 text-xs font-semibold text-slate-300 hover:text-white hover:bg-slate-900 transition-colors"
+            >
+              <BookOpen className="w-3.5 h-3.5 text-emerald-400" />
+              <span>{locale === 'tr' ? 'Rehber' : 'Docs'}</span>
+            </Link>
 
             <Link
               href="/dashboard/new"

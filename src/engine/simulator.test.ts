@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { Simulator } from './simulator';
 import { CircuitModel } from './types';
+import { COMPONENT_DEFINITIONS, getLocalizedComponentDefinitions } from '../components-lib/registry';
 
 describe('Logic Circuit Simulator Engine', () => {
   const sim = new Simulator();
@@ -623,6 +624,36 @@ describe('Logic Circuit Simulator Engine', () => {
     res = sim.evaluate(circuit, res.componentStates);
     expect(res.pinValues['reg:q']).toEqual([0, 0, 0, 1, 0, 0, 0, 0]); // holds 8
     expect(res.pinValues['adder:s']).toEqual([1, 1, 0, 1, 0, 0, 0, 0]); // 11 (8 + 3)
+  });
+
+  it('guarantees 100% i18n coverage (EN & TR) for all components and pins', () => {
+    expect(COMPONENT_DEFINITIONS.length).toBeGreaterThanOrEqual(44);
+
+    for (const comp of COMPONENT_DEFINITIONS) {
+      expect(comp.nameI18n, `Missing nameI18n on ${comp.type}`).toBeDefined();
+      expect(comp.nameI18n?.en?.trim().length, `Empty EN name on ${comp.type}`).toBeGreaterThan(0);
+      expect(comp.nameI18n?.tr?.trim().length, `Empty TR name on ${comp.type}`).toBeGreaterThan(0);
+
+      expect(comp.descriptionI18n, `Missing descriptionI18n on ${comp.type}`).toBeDefined();
+      expect(comp.descriptionI18n?.en?.trim().length, `Empty EN desc on ${comp.type}`).toBeGreaterThan(0);
+      expect(comp.descriptionI18n?.tr?.trim().length, `Empty TR desc on ${comp.type}`).toBeGreaterThan(0);
+
+      for (const pin of comp.pins) {
+        expect(pin.descriptionI18n, `Missing pin descriptionI18n on ${comp.type} pin ${pin.id}`).toBeDefined();
+        expect(pin.descriptionI18n?.en?.trim().length, `Empty EN pin desc on ${comp.type} pin ${pin.id}`).toBeGreaterThan(0);
+        expect(pin.descriptionI18n?.tr?.trim().length, `Empty TR pin desc on ${comp.type} pin ${pin.id}`).toBeGreaterThan(0);
+      }
+    }
+
+    const trDefs = getLocalizedComponentDefinitions('tr');
+    const enDefs = getLocalizedComponentDefinitions('en');
+    expect(trDefs.length).toBe(COMPONENT_DEFINITIONS.length);
+    expect(enDefs.length).toBe(COMPONENT_DEFINITIONS.length);
+
+    // Verify a sample component in Turkish
+    const trBusSplit = trDefs.find((c) => c.type === 'BUS_SPLIT');
+    expect(trBusSplit?.name).toBe('Veri Yolu Ayırıcı (8-Bit)');
+    expect(trBusSplit?.pins.find((p) => p.id === 'in')?.description).toBe('8-Bit Veri Yolu Girişi');
   });
 });
 
