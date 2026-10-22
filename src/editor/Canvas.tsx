@@ -25,6 +25,8 @@ import { getComponentDef } from '../components-lib/registry';
 import { ContextMenu, ContextMenuState } from './context-menu/ContextMenu';
 import { ComponentInfoModal } from './modals/ComponentInfoModal';
 import { ComponentDef } from '../engine/types';
+import { Scissors } from 'lucide-react';
+import { useTranslation } from '../i18n';
 
 const nodeTypes = {
   gate: GateNode,
@@ -57,6 +59,25 @@ const CanvasInner: React.FC = () => {
   const removeWire = useCircuitStore((state) => state.removeWire);
   const selectComponent = useCircuitStore((state) => state.selectComponent);
   const selectWire = useCircuitStore((state) => state.selectWire);
+  const editorMode = useCircuitStore((state) => state.editorMode);
+  const setEditorMode = useCircuitStore((state) => state.setEditorMode);
+  const { t } = useTranslation();
+
+  // Keyboard shortcut listener for modes: C = Cut Wires, V/Escape = Movement
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const activeTag = document.activeElement?.tagName.toLowerCase();
+      if (activeTag === 'input' || activeTag === 'textarea') return;
+
+      if (e.key === 'c' || e.key === 'C') {
+        setEditorMode('cut');
+      } else if (e.key === 'v' || e.key === 'V' || e.key === 'Escape') {
+        setEditorMode('movement');
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [setEditorMode]);
 
   // Context Menu state
   const [contextMenu, setContextMenu] = useState<ContextMenuState>({
@@ -240,8 +261,19 @@ const CanvasInner: React.FC = () => {
             removeWire(edge.id);
           }
         }}
-        onNodeClick={(_e, node) => selectComponent(node.id)}
-        onEdgeClick={(_e, edge) => selectWire(edge.id)}
+        onNodeClick={(_e, node) => {
+          if (editorMode !== 'cut') {
+            selectComponent(node.id);
+          }
+        }}
+        onEdgeClick={(e, edge) => {
+          if (editorMode === 'cut') {
+            e.stopPropagation();
+            removeWire(edge.id);
+          } else {
+            selectWire(edge.id);
+          }
+        }}
         onPaneClick={() => {
           selectComponent(null);
           selectWire(null);
@@ -296,6 +328,20 @@ const CanvasInner: React.FC = () => {
         isOpen={!!infoModalDef}
         onClose={() => setInfoModalDef(null)}
       />
+
+      {/* Floating Cutter Mode Active Banner */}
+      {editorMode === 'cut' && (
+        <div className="absolute top-3 left-1/2 -translate-x-1/2 z-20 flex items-center gap-2.5 px-3.5 py-1.5 rounded-xl bg-rose-950/90 border border-rose-500/60 shadow-2xl backdrop-blur-md text-rose-200 text-xs font-semibold animate-in fade-in slide-in-from-top-2 duration-150 select-none">
+          <Scissors className="w-4 h-4 text-rose-400 shrink-0 animate-pulse" />
+          <span>{t('cutWiresActiveMsg')}</span>
+          <button
+            onClick={() => setEditorMode('movement')}
+            className="ml-2 px-2.5 py-0.5 rounded-lg bg-rose-900/70 hover:bg-rose-800 text-white text-[11px] font-bold border border-rose-600/60 cursor-pointer transition-colors shadow-sm"
+          >
+            {t('exitCutMode')}
+          </button>
+        </div>
+      )}
     </div>
   );
 };

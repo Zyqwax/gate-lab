@@ -43,6 +43,29 @@ export const App: React.FC = () => {
     return () => clearInterval(interval);
   }, [isRunning, tickRateHz, step]);
 
+  // Periodic Auto-Save: Automatically saves project to localStorage every 7 seconds when unsaved changes exist
+  useEffect(() => {
+    const autoSaveInterval = setInterval(() => {
+      const state = useCircuitStore.getState();
+      if (!state.isSaved) {
+        state.saveCurrentProject();
+      }
+    }, 7000);
+
+    const handleBeforeUnload = () => {
+      const state = useCircuitStore.getState();
+      if (!state.isSaved) {
+        state.saveCurrentProject();
+      }
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+
+    return () => {
+      clearInterval(autoSaveInterval);
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, []);
+
   return (
     <div
       onContextMenu={(e) => e.preventDefault()}

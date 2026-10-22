@@ -9,6 +9,8 @@ export const translations = {
     turkish: 'Türkçe',
     save: 'Save',
     saved: 'Saved',
+    autoSaved: 'Auto-saved',
+    autoSaveActive: 'Auto-save is active (every 7s)',
     cancel: 'Cancel',
     confirm: 'Confirm',
     delete: 'Delete',
@@ -48,6 +50,12 @@ export const translations = {
     exportJSON: 'Export Circuit JSON',
     importJSON: 'Import JSON File',
     clearCanvas: 'Clear Canvas',
+    modeMovement: 'Move',
+    modeMovementTooltip: 'Movement & Selection Mode (V)',
+    modeCut: 'Cut Wires',
+    modeCutTooltip: 'Cut Wires Mode (C) - Touch or click wires to cut them',
+    cutWiresActiveMsg: 'Cut Wires Mode Active: Touch or click wires to cut them',
+    exitCutMode: 'Exit (Esc)',
 
     // Modals & Dialogs
     clearCanvasTitle: 'Clear Canvas',
@@ -214,6 +222,8 @@ export const translations = {
     turkish: 'Türkçe',
     save: 'Kaydet',
     saved: 'Kaydedildi',
+    autoSaved: 'Oto-kaydedildi',
+    autoSaveActive: 'Otomatik kayıt devrede (7 sn)',
     cancel: 'İptal',
     confirm: 'Onayla',
     delete: 'Sil',
@@ -253,6 +263,12 @@ export const translations = {
     exportJSON: 'Devreyi JSON İndir',
     importJSON: 'JSON Dosyası Yükle',
     clearCanvas: 'Tuvali Temizle',
+    modeMovement: 'Hareket',
+    modeMovementTooltip: 'Hareket & Seçim Modu (V)',
+    modeCut: 'Kablo Kes',
+    modeCutTooltip: 'Kablo Kesme Modu (C) - Dokunarak veya tıklayarak kabloları kesin',
+    cutWiresActiveMsg: 'Kablo Kesme Modu: Dokunulan veya tıklanan kablolar anında kesilir',
+    exitCutMode: 'Çıkış (Esc)',
 
     // Modals & Dialogs
     clearCanvasTitle: 'Tuvali Temizle',

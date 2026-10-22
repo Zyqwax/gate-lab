@@ -33,6 +33,8 @@ import {
   Sliders,
   Map,
   Globe,
+  Scissors,
+  MousePointer,
 } from "lucide-react";
 import { useTranslation } from "../i18n";
 
@@ -73,6 +75,8 @@ export const Toolbar: React.FC<ToolbarProps> = ({
     saveCurrentProject,
     showMinimap,
     toggleMinimap,
+    editorMode,
+    setEditorMode,
   } = useCircuitStore();
 
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -232,30 +236,40 @@ export const Toolbar: React.FC<ToolbarProps> = ({
           )}
         </div>
 
-        {/* CONDITIONAL RENDER: Save button only rendered when unsaved or just saved */}
-        {(!isSaved || justSaved) && (
-          <button
-            onClick={handleSave}
-            className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold transition-all shadow-md cursor-pointer shrink-0 animate-in fade-in duration-150 ${
-              justSaved
-                ? "bg-emerald-950 text-emerald-400 border border-emerald-800/80"
-                : "bg-emerald-600 hover:bg-emerald-500 text-slate-950 shadow-emerald-600/30"
-            }`}
-            title={justSaved ? t("saved") : t("save")}
-          >
-            {justSaved ? (
-              <>
-                <Check className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">{t("saved")}</span>
-              </>
-            ) : (
-              <>
-                <Save className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">{t("save")}</span>
-              </>
-            )}
-          </button>
-        )}
+        {/* Save button & Auto-Save Indicator */}
+        <div className="flex items-center gap-1 shrink-0">
+          {!isSaved || justSaved ? (
+            <button
+              onClick={handleSave}
+              className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold transition-all shadow-md cursor-pointer shrink-0 animate-in fade-in duration-150 ${
+                justSaved
+                  ? "bg-emerald-950 text-emerald-400 border border-emerald-800/80"
+                  : "bg-emerald-600 hover:bg-emerald-500 text-slate-950 shadow-emerald-600/30"
+              }`}
+              title={justSaved ? t("saved") : t("save")}
+            >
+              {justSaved ? (
+                <>
+                  <Check className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">{t("saved")}</span>
+                </>
+              ) : (
+                <>
+                  <Save className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">{t("save")}</span>
+                </>
+              )}
+            </button>
+          ) : (
+            <div
+              className="flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-slate-900/80 border border-slate-800 text-[10px] font-medium text-emerald-400/90 select-none shadow-sm cursor-default"
+              title={t("autoSaveActive")}
+            >
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+              <span className="hidden sm:inline">{t("autoSaved")}</span>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* 2. CENTER SECTION: Simulation Core Controls (Clean & Focused) */}
@@ -310,6 +324,38 @@ export const Toolbar: React.FC<ToolbarProps> = ({
         {stepCount > 0 && (
           <span className="text-[10px] font-mono text-slate-500 hidden sm:inline px-1">#{stepCount}</span>
         )}
+
+        {/* Subtle Divider */}
+        <div className="h-4 w-px bg-slate-800 mx-0.5" />
+
+        {/* Editor Modes: Movement vs Cut Wires */}
+        <div className="flex items-center bg-slate-950/90 p-0.5 rounded-xl border border-slate-800/90 shadow-inner">
+          <button
+            onClick={() => setEditorMode("movement")}
+            className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+              editorMode === "movement"
+                ? "bg-slate-800 text-sky-400 shadow-sm border border-slate-700/80"
+                : "text-slate-400 hover:text-slate-200 hover:bg-slate-900"
+            }`}
+            title={t("modeMovementTooltip")}
+          >
+            <MousePointer className="w-3.5 h-3.5" />
+            <span className="hidden md:inline">{t("modeMovement")}</span>
+          </button>
+
+          <button
+            onClick={() => setEditorMode("cut")}
+            className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+              editorMode === "cut"
+                ? "bg-rose-600 text-white shadow-md shadow-rose-600/30 ring-2 ring-rose-500/20"
+                : "text-slate-400 hover:text-rose-400 hover:bg-rose-950/30"
+            }`}
+            title={t("modeCutTooltip")}
+          >
+            <Scissors className={`w-3.5 h-3.5 ${editorMode === "cut" ? "animate-pulse" : ""}`} />
+            <span className="hidden md:inline">{t("modeCut")}</span>
+          </button>
+        </div>
       </div>
 
       {/* 3. RIGHT SECTION: Truth Table, Inspector Toggle & Overflow "..." Menu */}

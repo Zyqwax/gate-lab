@@ -5,12 +5,18 @@ import { getComponentDef, getComponentPins } from '../components-lib/registry';
 import { TEMPLATES } from '../templates/circuits';
 import { saveCircuit } from '../lib/circuitStorage';
 
-interface CircuitState {
+export type EditorMode = 'movement' | 'cut';
+
+export interface CircuitState {
   // Circuit data
   components: ComponentInstance[];
   wires: Wire[];
   selectedComponentId: string | null;
   selectedWireId: string | null;
+
+  // Interaction Mode
+  editorMode: EditorMode;
+  setEditorMode: (mode: EditorMode) => void;
 
   // Simulation execution
   isRunning: boolean;
@@ -119,6 +125,9 @@ export const useCircuitStore = create<CircuitState>((set, get) => {
     isSaved: true,
     showMinimap: true,
     toggleMinimap: () => set((state) => ({ showMinimap: !state.showMinimap })),
+
+    editorMode: 'movement',
+    setEditorMode: (mode) => set({ editorMode: mode }),
 
     setProject: (id, name, model) => {
       const simResult = runSim(model.components, model.wires);
